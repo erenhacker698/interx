@@ -1,0 +1,11 @@
+{
+  "logChannel": "1482313665150713988",
+  "logChannelId": "1482313665150713988",
+  "ownerId": "1250850375284818104",
+  "botOwnerId": "1250850375284818104",
+  "botDevId": "783953632974471178",
+  "channelDeleteLimit": 1,
+  "roleDeleteLimit": 1,
+  "banLimit": 1,
+  "punishment": "ban"
+}

@@ -1,0 +1,36 @@
+{
+  "name": "bluesealprime",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "exec node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/rest": "^2.6.0",
+    "@discordjs/voice": "^0.19.0",
+    "@distube/spotify": "^2.0.2",
+    "@distube/youtube": "^1.0.4",
+    "@snazzah/davey": "^0.1.9",
+    "axios": "^1.13.5",
+    "better-sqlite3": "^12.8.0",
+    "canvas": "^3.2.1",
+    "discord-api-types": "^0.38.38",
+    "discord.js": "^14.25.1",
+    "distube": "^5.2.3",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "ffmpeg-static": "^5.3.0",
+    "libsodium-wrappers": "^0.8.2",
+    "moment": "^2.30.1",
+    "openai": "^6.29.0",
+    "pg": "^8.18.0",
+    "quick.db": "^9.1.7"
+  }
+}
