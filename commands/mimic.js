@@ -20,7 +20,7 @@ module.exports = {
         }
 
         const guild = message.guild;
-        const rest = new REST({ version: "10" }).setToken(process.env.TOKEN || message.client.token);
+        const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN || message.client.token);
 
         // ── OFF / RESET ──
         if (args[0]?.toLowerCase() === "off") {
@@ -125,3 +125,4 @@ module.exports = {
         }
     }
 };
+

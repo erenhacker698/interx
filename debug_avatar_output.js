@@ -20,4 +20,5 @@ client.on("ready", () => {
     process.exit(0);
 });
 
-client.login(process.env.TOKEN);
+client.login(process.env.DISCORD_TOKEN);
+

@@ -59,14 +59,14 @@ for (const filePath of allCommandFiles) {
     }
 }
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
     try {
         console.log(`🚀 Started refreshing ${commands.length} application (/) commands.`);
 
         // Extract Client ID from Token (First part of token is Base64 encoded ID)
-        const clientId = Buffer.from(process.env.TOKEN.split('.')[0], 'base64').toString();
+        const clientId = Buffer.from(process.env.DISCORD_TOKEN.split('.')[0], 'base64').toString();
         console.log(`📡 Detected Client ID: ${clientId}`);
 
         const data = await rest.put(
@@ -79,3 +79,4 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
         console.error(error);
     }
 })();
+

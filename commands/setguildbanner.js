@@ -38,7 +38,7 @@ module.exports = {
         const { REST } = require('@discordjs/rest');
         const { Routes } = require('discord-api-types/v10');
         require('dotenv').config(); // Ensure token is loaded
-        const rest = new REST({ version: '10' }).setToken(process.env.TOKEN || message.client.token);
+        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN || message.client.token);
 
         try {
             // Check for 'default' reset
@@ -101,3 +101,4 @@ module.exports = {
         }
     }
 };
+

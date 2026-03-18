@@ -4048,7 +4048,7 @@ setInterval(async () => {
 
 
 // ───── LOGIN ─────
-client.login(process.env.TOKEN);
+client.login(process.env.DISCORD_TOKEN);
 
 
 
@@ -4075,3 +4075,4 @@ module.exports = {
   refreshOwnerCache,
   db
 };
+
