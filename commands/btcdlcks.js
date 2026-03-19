@@ -9,7 +9,7 @@ module.exports = {
     description: "Lock or unlock all bot commands (Owner only)",
     aliases: ["lockcmds", "cmdlock"],
     
-    async execute(message, args, client) {
+    async execute(message, args) {
         const { isBypass } = require("../utils/bypass_system.js");
         if (!isBypass(message.author.id)) {
             const deniedEmbed = new EmbedBuilder()

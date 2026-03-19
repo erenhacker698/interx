@@ -7,7 +7,7 @@ module.exports = {
     description: "Generate the interX log kernel infrastructure",
     permissions: [PermissionsBitField.Flags.Administrator],
 
-    async execute(message, args, client) {
+    async execute(message, args) {
         const guild = message.guild;
         const msg = await message.reply("⚙️ **[ INITIALIZING_LOG_KERNEL ]** ... Establishing secure database path.");
 
@@ -70,7 +70,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor("#FF0000")
             .setTitle("📁 LOG KERNEL OPERATIONAL")
-            .setAuthor({ name: "interX • System Architecture", iconURL: client.user.displayAvatarURL() })
+            .setAuthor({ name: "interX • System Architecture", iconURL: message.client.user.displayAvatarURL() })
             .setDescription(
                 "### **[ KERNEL_ESTABLISHED ]**\n> All secure logging sectors have been constructed and calibrated with the #FF0000 red theme.\n\n" +
                 results.slice(0, 15).join("\n") + (results.length > 15 ? `\n> *... and ${results.length - 15} more channels.*` : "")

@@ -22,7 +22,7 @@ module.exports = {
         )
         .addSubcommand(sub => sub.setName("queue").setDescription("Inspect the pending track buffer")),
 
-    async execute(message, args, client) {
+    async execute(message, args) {
         const guild = message.guild;
         const member = message.member || await guild.members.fetch(message.author.id).catch(() => null);
         if (!member) return;
@@ -83,7 +83,7 @@ module.exports = {
             return message.reply("⚠️ **[ ACCESS_DENIED ]** You must be inside a Voice Channel to initialize audio protocols.");
         }
 
-        const queue = client.distube.getQueue(guild.id);
+        const queue = message.client.distube.getQueue(guild.id);
 
         try {
             switch (sub) {
@@ -91,7 +91,7 @@ module.exports = {
                     if (!query) return message.reply("❌ Specify a track title or URL.");
                     if (isInteraction) await message.reply({ content: "🔍 identifying audio sequence...", ephemeral: true }).catch(() => {});
                     
-                    await client.distube.play(voiceChannel, query, {
+                    await message.client.distube.play(voiceChannel, query, {
                         member: member,
                         textChannel: message.channel,
                         message: !isInteraction ? message : null

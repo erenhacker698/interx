@@ -140,7 +140,8 @@ module.exports = {
         .addSubcommand(s => s.setName("disable").setDescription("Disable the automatic jail trap"))
         .addSubcommand(s => s.setName("setup").setDescription("Generate the jail channels manually")),
 
-    async execute(message, args, client) {
+    async execute(message, args) {
+        const client = message.client;
         this.attachEvents(client);
 
         // Safely extract subcommand whether it's prefix (args[0]) or slash (message.options)
