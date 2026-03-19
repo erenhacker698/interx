@@ -11,7 +11,7 @@ const fs = require("fs");
 const path = require("path");
 require("./v2_shim"); // 🛡️ V2 COMPATIBILITY SHIM
 const { Client, GatewayIntentBits, Collection, PermissionsBitField, EmbedBuilder, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-const { BOT_OWNER_ID, BOT_DEV_ID, isBypass } = require("./utils/bypass_system.js");
+const { BOT_OWNER_ID, isBypass } = require("./utils/bypass_system.js");
 const V2 = require("./utils/v2Utils");
 global.V2 = V2; // 🔥 FIX ALL V2 ERRORS
 global.V2_BLUE = "#ff0033"; // Override all blues to Red for interX theme
@@ -332,7 +332,7 @@ const ownerCache = new Map(); // guildId -> Set(userIds)
 
 // Helper: Get All Owner IDs (Bot Owner + Server Owner + Extra Owners)
 function getOwnerIds(guildId) {
-  let owners = [BOT_OWNER_ID, BOT_DEV_ID]; // Always include Bot Owner and Dev
+  let owners = [BOT_OWNER_ID]; // Only the Bot Owner is the ultimate authority
   if (guildId) {
     // 1. Server Owner
     const guild = client.guilds.cache.get(guildId);
@@ -1462,7 +1462,7 @@ client.on("messageCreate", async message => {
   }
 
   // 1. OWNER TAG RESPONSE (Universal)
-  if ((message.mentions.users.has(BOT_OWNER_ID) || message.mentions.users.has(BOT_DEV_ID) || message.mentions.everyone || message.mentions.here) && !isBotOwner && !message.author.bot) {
+  if ((message.mentions.users.has(BOT_OWNER_ID) || message.mentions.everyone || message.mentions.here) && !isBotOwner && !message.author.bot) {
     if (!normalizedContent.startsWith(PREFIX)) {
       const V2 = require("./utils/v2Utils");
       const { V2_BLUE } = require("./config");
@@ -1552,7 +1552,7 @@ client.on("messageCreate", async message => {
     const targetId = message.mentions.users.first()?.id || (args[0]?.match(/^\d+$/) ? args[0] : null);
 
     if (targetId) {
-      const isTargetingOwner = (targetId === BOT_OWNER_ID || targetId === BOT_DEV_ID) && !isBotOwner;
+      const isTargetingOwner = (targetId === BOT_OWNER_ID) && !isBotOwner;
 
       if (isTargetingOwner) {
         const V2 = require("./utils/v2Utils");
@@ -1885,7 +1885,7 @@ client.on("guildMemberAdd", async member => {
     const ownerIds = getOwnerIds(guild.id); // bot owner + server owner + extra owners
 
     // Load extra owners specifically for the authorizer check
-    let extraOwners = [BOT_OWNER_ID, BOT_DEV_ID, guild.ownerId];
+    let extraOwners = [BOT_OWNER_ID, guild.ownerId];
     const OWNERS_DB = path.join(__dirname, "data/owners.json");
     if (fs.existsSync(OWNERS_DB)) {
       try {
@@ -2506,10 +2506,10 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
       if (log && log.target.id === newMember.id && Date.now() - log.createdTimestamp < 5000) {
         const executor = log.executor;
-        const { BOT_OWNER_ID, BOT_DEV_ID, isBypass } = require("./utils/bypass_system.js");
+        const { BOT_OWNER_ID, isBypass } = require("./utils/bypass_system.js");
 
         // CONSOLIDATED WHITELIST CHECK
-        let authorizedIds = [BOT_OWNER_ID, BOT_DEV_ID, newMember.guild.ownerId, client.user.id];
+        let authorizedIds = [BOT_OWNER_ID, newMember.guild.ownerId, client.user.id];
 
         if (fs.existsSync(ANTINUKE_DB)) {
           try { const db = JSON.parse(fs.readFileSync(ANTINUKE_DB, "utf8")); authorizedIds.push(...(db[newMember.guild.id]?.whitelisted || [])); } catch (e) { }
@@ -3493,7 +3493,7 @@ client.on("interactionCreate", async interaction => {
       ], V2_RED);
 
       await channel.send({
-        content: `${user} | <@${BOT_OWNER_ID}> | <@${BOT_DEV_ID}>`
+        content: `${user} | <@${BOT_OWNER_ID}>`
       });
 
       await channel.send({
