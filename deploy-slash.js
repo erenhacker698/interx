@@ -59,14 +59,16 @@ for (const filePath of allCommandFiles) {
     }
 }
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+const token = process.env.DISCORD_TOKEN || process.env.TOKEN;
+const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
     try {
+        if (!token) throw new Error("No token found in .env (Expected DISCORD_TOKEN or TOKEN)");
         console.log(`🚀 Started refreshing ${commands.length} application (/) commands.`);
 
         // Extract Client ID from Token (First part of token is Base64 encoded ID)
-        const clientId = Buffer.from(process.env.DISCORD_TOKEN.split('.')[0], 'base64').toString();
+        const clientId = Buffer.from(token.split('.')[0], 'base64').toString();
         console.log(`📡 Detected Client ID: ${clientId}`);
 
         const data = await rest.put(
