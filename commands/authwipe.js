@@ -17,7 +17,7 @@ module.exports = {
             "interX! anti nuke",
             "interX! unbypassable",
             "interX! secure",
-            "interX! anti-raid"
+            "interX! anti raid"
         ];
 
         const msg = await message.reply({

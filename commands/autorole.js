@@ -1,96 +1,114 @@
-const { EmbedBuilder, PermissionsBitField, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
+const { EmbedBuilder, PermissionsBitField } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
-const { EMBED_COLOR, ERROR_COLOR, SUCCESS_COLOR, BOT_OWNER_ID, BOT_DEV_ID } = require("../config");
+const { BOT_OWNER_ID } = require("../config");
+
 module.exports = {
     name: "autorole",
-    description: "Automated role assignment for new members",
+    description: "Configure automated role assignment for new server members.",
     usage: "!autorole <set @role | off | status>",
     permissions: [PermissionsBitField.Flags.Administrator],
 
     async execute(message, args) {
-        const DB_PATH = path.join(__dirname, "../data/autorole.json");
+        if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return message.reply({ content: "⚠️ **[ ACCESS_DENIED ]** Administrator privileges required." });
+        }
 
-        // Ensure data directory exists
-        if (!fs.existsSync(path.join(__dirname, "../data"))) {
-            fs.mkdirSync(path.join(__dirname, "../data"));
+        const DB_PATH = path.join(__dirname, "../data/autorole.json");
+        const dataDir = path.join(__dirname, "../data");
+
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
         }
 
         let data = {};
         if (fs.existsSync(DB_PATH)) {
-            try {
-                data = JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
-            } catch (e) {
-                console.error("Error reading autorole DB:", e);
-            }
+            try { data = JSON.parse(fs.readFileSync(DB_PATH, "utf8")); } catch (e) { }
         }
 
         const sub = args[0]?.toLowerCase();
 
-        if (sub === "set") {
+        // 1. SET AUTOROLE
+        if (sub === "set" || sub === "add") {
             const role = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
+            
             if (!role) {
-                return message.reply({ embeds: [new EmbedBuilder().setColor(ERROR_COLOR).setDescription("⚠️ **Missing Role.** Usage: `!autorole set @role`")] });
+                const errorEmbed = new EmbedBuilder()
+                    .setColor("#FF0000")
+                    .setTitle("❌ ERROR: MISSING_ROLE")
+                    .setDescription("> **You must mention or provide a valid Role ID to initialize the automation.**\n\nUsage: `!autorole set @role`")
+                    .setFooter({ text: "interX • Configuration Node" });
+                return message.reply({ embeds: [errorEmbed] });
             }
 
             if (role.position >= message.guild.members.me.roles.highest.position) {
-                return message.reply({ embeds: [new EmbedBuilder().setColor(ERROR_COLOR).setDescription("🚫 **Hierarchy Error:** I cannot assign a role higher than my own.")] });
+                const hierarchyEmbed = new EmbedBuilder()
+                    .setColor("#FF0000")
+                    .setTitle("🚫 HIERARCHY_VIOLATION")
+                    .setDescription(`> **The role ${role} sits above my clearance level.**\n\nMove my role above it in Server Settings to restore management capabilities.`)
+                    .setFooter({ text: "interX • Security Protocols" });
+                return message.reply({ embeds: [hierarchyEmbed] });
             }
 
             data[message.guild.id] = role.id;
             fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 
-            const container = V2.container([
-                V2.section([
-                    `**Autorole Activated**`,
-                    `Automatic onboarding sequence synchronized.`
-                ], message.guild.iconURL({ dynamic: true, size: 512 })),
-                `\u200b`,
-                `New members will be granted the **${role.name}** role upon entry.`,
-                `\u200b`,
-                `Architect: <@${BOT_OWNER_ID}>` ], "#00EEFF");
+            const successEmbed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setAuthor({ name: "interX | Automation Initialized", iconURL: message.client.user.displayAvatarURL() })
+                .setTitle("👤 [ AUTOROLE_PROTOCOL_ACTIVE ]")
+                .setThumbnail(message.guild.iconURL({ dynamic: true }))
+                .setDescription(
+                    `### **Member Onboarding Synced**\n\n` +
+                    `> **Target Role:** ${role} (\`${role.id}\`)\n` +
+                    `> **Status:** Active & Monitoring\n\n` +
+                    `New users entering the server will be automatically assigned this role by the interX Sovereign System.`
+                )
+                .setFooter({ text: "interX Sovereign • Seamless Integration" })
+                .setTimestamp();
 
-            return message.channel.send({ content: null, components: [container] });
+            return message.reply({ embeds: [successEmbed] });
         }
 
-        if (sub === "off" || sub === "disable") {
+        // 2. DISABLE AUTOROLE
+        if (sub === "off" || sub === "disable" || sub === "stop") {
             if (!data[message.guild.id]) {
-                return message.reply("⚠️ Autorole is already disabled for this sector.");
+                return message.reply({ content: "⚠️ **Status:** Autorole is already offline for this sector." });
             }
 
             delete data[message.guild.id];
             fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 
-            const container = V2.container([
-                `\u200b`,
-                `**Autorole Deactivated**`,
-                `Automation has been terminated for this sector.`,
-                `\u200b`
-            ], "#FF4500");
+            const offEmbed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("⚠️ [ AUTOROLE_PROTOCOL_TERMINATED ]")
+                .setDescription("> **Automatic onboarding has been deactivated.**\n\nNew members will no longer receive roles upon entry until the system is re-initialized.")
+                .setTimestamp();
 
-            return message.reply({ content: null, components: [container] });
+            return message.reply({ embeds: [offEmbed] });
         }
 
-        if (sub === "status" || !sub) {
-            const roleId = data[message.guild.id];
-            const role = roleId ? message.guild.roles.cache.get(roleId) : null;
+        // 3. STATUS
+        const roleId = data[message.guild.id];
+        const role = roleId ? message.guild.roles.cache.get(roleId) : null;
 
-            const container = V2.container([
-                V2.section([
-                    `**Autorole Status**`,
-                    `System Telemetry Logged`
-                ], message.guild.iconURL({ dynamic: true, size: 512 })),
-                `\u200b`,
-                `**Status:** ${role ? "Active" : "Inactive"}`,
-                `**Target:** ${role ? `${role.name} (${role.id})` : "None Set"}`,
-                `\u200b`,
-                `**Protocol Usage:**`,
-                `!autorole set @role`,
-                `!autorole off`,
-                `\u200b`,
-                `Architect: <@${BOT_OWNER_ID}>` ], "#00EEFF");
+        const statusEmbed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setAuthor({ name: "interX | System Telemetry", iconURL: message.client.user.displayAvatarURL() })
+            .setTitle("👤 [ AUTOROLE_DIAGNOSTIC ]")
+            .setThumbnail(message.guild.iconURL({ dynamic: true }))
+            .setDescription(
+                `### **Automation Node Status**\n\n` +
+                `> **Global Status:** ${role ? "🟢 ACTIVE" : "🔴 INACTIVE"}\n` +
+                `> **Target Role:** ${role ? role : "`None`"}\n` +
+                `> **Hierarchy Sync:** ${role ? (role.position < message.guild.members.me.roles.highest.position ? "✅ SECURE" : "⚠️ OUT OF RANK") : "N/A"}\n\n` +
+                `**Commands:**\n` +
+                `\`!autorole set @role\` • Enable\n` +
+                `\`!autorole off\` • Disable`
+            )
+            .setFooter({ text: "interX Sovereign • Optimized User Flow" })
+            .setTimestamp();
 
-            return message.channel.send({ content: null, components: [container] });
-        }
+        return message.reply({ embeds: [statusEmbed] });
     }
 };

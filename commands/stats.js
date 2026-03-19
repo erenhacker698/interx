@@ -31,7 +31,7 @@ module.exports = {
             `> **RAM Usage:** \`${memoryUsage} MB\` / \`${totalMemory} GB\`\n> **Platform:** \`${os.platform().toUpperCase()} (${os.arch()})\``,
             "🧩 BOT INTELLIGENCE",
             `> **Guilds:** \`${message.client.guilds.cache.size}\`\n> **Users:** \`${message.client.users.cache.size}\`\n> **Discord.js:** \`v${djsversion}\``
-        ], "#0099ff");
+        ], "#ff0000ff");
 
         message.reply({
             content: null,
