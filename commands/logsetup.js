@@ -11,6 +11,7 @@ module.exports = {
         const guild = message.guild;
         const msg = await message.reply("⚙️ **[ INITIALIZING_LOG_KERNEL ]** ... Establishing secure database path.");
 
+        // Ensure category exists
         let category = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === "interx log kernel");
         if (!category) {
             category = await guild.channels.create({
@@ -19,10 +20,12 @@ module.exports = {
                 permissionOverwrites: [
                     { id: guild.id, deny: [PermissionsBitField.Flags.ViewChannel] }
                 ]
-            });
+            }).catch(() => null);
         }
 
-        const logChannels = {
+        if (!category) return msg.edit("❌ **ERROR:** Failed to create or find log category. Check my permissions.");
+
+        const logChannelsMap = {
             message: "message logs",
             joins: "joins logs",
             leaves: "leaves logs",
@@ -32,25 +35,35 @@ module.exports = {
             role: "role logs",
             voice: "voice logs",
             member: "member logs",
-            channel: "channel logs ",
+            channel: "channel logs",
             invite: "invite logs",
             antinuke: "antinuke-logs",
-            ban: "ban logs"
+            ban: "ban logs",
+            action: "action logs",
+            admin: "admin logs"
         };
 
         const LOGS_DB = path.join(__dirname, "../data/logs.json");
+        const dataDir = path.join(__dirname, "../data");
+        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
         let allLogs = {};
         if (fs.existsSync(LOGS_DB)) {
             try {
-                allLogs = JSON.parse(fs.readFileSync(LOGS_DB, "utf8"));
+                const content = fs.readFileSync(LOGS_DB, "utf8");
+                allLogs = content ? JSON.parse(content) : {};
             } catch (e) {
+                console.error("[logsetup] Failed to parse logs.json:", e);
                 allLogs = {};
             }
         }
         if (!allLogs[guild.id]) allLogs[guild.id] = {};
 
         const results = [];
-        for (const [key, name] of Object.entries(logChannels)) {
+        // Ensure we have current channels in cache
+        await guild.channels.fetch().catch(() => {});
+
+        for (const [key, name] of Object.entries(logChannelsMap)) {
             let ch = guild.channels.cache.find(c => c.name === name && c.parentId === category.id);
             if (!ch) {
                 ch = await guild.channels.create({
@@ -65,7 +78,12 @@ module.exports = {
             }
         }
 
-        fs.writeFileSync(LOGS_DB, JSON.stringify(allLogs, null, 2));
+        try {
+            fs.writeFileSync(LOGS_DB, JSON.stringify(allLogs, null, 2));
+        } catch (err) {
+            console.error("[logsetup] Failed to write logs.json:", err);
+            return msg.edit("❌ **DATABASE ERROR:** Failed to save log configuration.");
+        }
 
         const embed = new EmbedBuilder()
             .setColor("#FF0000")

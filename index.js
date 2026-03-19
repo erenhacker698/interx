@@ -17,48 +17,11 @@ global.V2 = V2; // 🔥 FIX ALL V2 ERRORS
 global.V2_BLUE = "#ff0033"; // Override all blues to Red for interX theme
 global.V2_RED = "#ff0000";
 
-const { Message, TextChannel } = require("discord.js");
-const originalReply = Message.prototype.reply;
-Message.prototype.reply = function (options) {
-  if (typeof options === "object" && options.components) {
-    let newComponents = [];
-    let newEmbeds = options.embeds || [];
-    for (let c of options.components) {
-      if (c && c.isUltimateEmbed) {
-        newEmbeds.push(c.embed);
-      } else {
-        newComponents.push(c);
-      }
-    }
-    options.components = newComponents;
-    if (newEmbeds.length > 0) options.embeds = newEmbeds;
-  }
-  return originalReply.call(this, options);
-};
-
-const originalSend = TextChannel.prototype.send;
-TextChannel.prototype.send = function (options) {
-  if (typeof options === "object" && options.components) {
-    let newComponents = [];
-    let newEmbeds = options.embeds || [];
-    for (let c of options.components) {
-      if (c && c.isUltimateEmbed) {
-        newEmbeds.push(c.embed);
-      } else {
-        newComponents.push(c);
-      }
-    }
-    options.components = newComponents;
-    if (newEmbeds.length > 0) options.embeds = newEmbeds;
-  }
-  return originalSend.call(this, options);
-};
-
-// ───── SLASH INTERACTION PATCHES ─────
-const { ChatInputCommandInteraction, CommandInteraction, BaseInteraction, MessageComponentInteraction, ModalSubmitInteraction } = require("discord.js");
+// ───── PATCH SYSTEM (V2 UI COMPATIBILITY) ─────
+const { Message, TextChannel, NewsChannel, ThreadChannel, ChatInputCommandInteraction, CommandInteraction, BaseInteraction, MessageComponentInteraction, ModalSubmitInteraction } = require("discord.js");
 
 const patchOptions = (options) => {
-  if (typeof options === "object" && options.components) {
+  if (typeof options === "object" && options && options.components) {
     let newComponents = [];
     let newEmbeds = options.embeds || [];
     for (let c of options.components) {
@@ -74,32 +37,45 @@ const patchOptions = (options) => {
   return options;
 };
 
-const classesToPatch = [ChatInputCommandInteraction, CommandInteraction, BaseInteraction, MessageComponentInteraction, ModalSubmitInteraction];
-classesToPatch.forEach(cls => {
+// Patch Message.reply
+const originalReply = Message.prototype.reply;
+Message.prototype.reply = function (options) {
+  return originalReply.call(this, patchOptions(options));
+};
+
+// Patch Channel types (send)
+[TextChannel, NewsChannel, ThreadChannel].forEach(cls => {
+  if (!cls || !cls.prototype) return;
+  const originalSend = cls.prototype.send;
+  cls.prototype.send = function (options) {
+    return originalSend.call(this, patchOptions(options));
+  };
+});
+
+// Patch Interaction types (reply, followUp, editReply)
+const interactionClasses = [ChatInputCommandInteraction, CommandInteraction, BaseInteraction, MessageComponentInteraction, ModalSubmitInteraction];
+interactionClasses.forEach(cls => {
   if (!cls || !cls.prototype) return;
 
-  if (cls.prototype.reply && !cls.prototype.reply._patched) {
-    const originalReply = cls.prototype.reply;
+  const originalReply = cls.prototype.reply;
+  if (originalReply) {
     cls.prototype.reply = function (options) {
       return originalReply.call(this, patchOptions(options));
     };
-    cls.prototype.reply._patched = true;
   }
 
-  if (cls.prototype.followUp && !cls.prototype.followUp._patched) {
-    const originalFollowUp = cls.prototype.followUp;
+  const originalFollowUp = cls.prototype.followUp;
+  if (originalFollowUp) {
     cls.prototype.followUp = function (options) {
       return originalFollowUp.call(this, patchOptions(options));
     };
-    cls.prototype.followUp._patched = true;
   }
 
-  if (cls.prototype.editReply && !cls.prototype.editReply._patched) {
-    const originalEditReply = cls.prototype.editReply;
+  const originalEditReply = cls.prototype.editReply;
+  if (originalEditReply) {
     cls.prototype.editReply = function (options) {
       return originalEditReply.call(this, patchOptions(options));
     };
-    cls.prototype.editReply._patched = true;
   }
 });
 
@@ -147,11 +123,19 @@ global.logToChannel = async (guild, type, payload) => {
   const LOGS_DB = path.join(__dirname, "data/logs.json");
   if (!fs.existsSync(LOGS_DB)) return;
   try {
-    const data = JSON.parse(fs.readFileSync(LOGS_DB, "utf8"));
+    const content = fs.readFileSync(LOGS_DB, "utf8");
+    if (!content) return;
+    const data = JSON.parse(content);
     const cid = data[guild.id]?.[type] || data[guild.id]?.["server"];
     if (!cid) return;
-    const channel = await guild.channels.fetch(cid).catch(() => null);
+    const channel = guild.channels.cache.get(cid) || await guild.channels.fetch(cid).catch(() => null);
     if (!channel) return;
+
+    // Handle payload if it's a V2 Container
+    if (payload && payload.isUltimateEmbed) {
+       return channel.send({ components: [payload] }).catch(() => {});
+    }
+
     const embed = payload instanceof EmbedBuilder ? payload : new EmbedBuilder(payload);
     if (!embed.data.color) embed.setColor("#df0000");
     return channel.send({ embeds: [embed] }).catch(() => {});
@@ -1652,7 +1636,7 @@ client.on("messageCreate", async message => {
       }
     }
 
-    const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+    const command = client.commands.get(commandName) || Array.from(client.commands.values()).find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
     if (!command) return;
 
     // ───── BOT COMMAND LOCK CHECK ─────
@@ -3933,145 +3917,11 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
 
 // ───── LOGGING EVENT HANDLER ─────
-// ───── LOGGING EVENT HANDLER (MIGRATED TO CV2) ─────
+// Consolidating logging to the global handler defined at the top
 async function logToChannel(guild, type, payload) {
-  if (!guild) return;
-  global.logToChannel = logToChannel; 
-
-  const V2 = require("./utils/v2Utils");
-  const V2_FLAG = V2.flag; // 32768
-
-  // Accent colors per log type
-  const TYPE_COLORS = {
-    security: "#FF0000",
-    antinuke: "#FF3131",
-    mod: "#8B0000",
-    member: "#FF5757",
-    message: "#FF6666",
-    file: "#AA0000",
-    action: "#CC0000",
-    admin: "#FF0000",
-    role: "#EE0000",
-    channel: "#DD0000",
-    voice: "#BB0000",
-    server: "#FF1A1A",
-    invite: "#FF4444",
-    ticket: "#990000",
-    verify: "#FF2222",
-    whitelist: "#FF0000",
-    raid: "#FF0000",
-    spam: "#FF0000",
-    joins: "#00FF00", // Leaves some variation for join/leave if wanted, but user asked for RED
-    leaves: "#FF0000",
-    ban: "#FF0000",
-  };
-  const accentHex = TYPE_COLORS[type] || "#5865F2";
-
-  // Bot server-specific PFP
-  const botMember = guild.members.cache.get(client.user.id);
-  const botPFP = botMember
-    ? botMember.displayAvatarURL({ forceStatic: false, size: 512 })
-    : client.user.displayAvatarURL({ forceStatic: false, size: 512 });
-
-  // Convert EmbedBuilder data to V2 ContainerBuilder
-  function embedToV2(embedInput, forGlobal) {
-    const d = embedInput.data || embedInput;
-    const comps = [];
-
-    const titleText = d.title || "\uD83D\uDCCB LOG ENTRY";
-    const timestamp = Math.floor(Date.now() / 1000);
-    const serverLine = forGlobal
-      ? "> \uD83C\uDF10 **GLOBAL LOG** \u2022 **Server:** " + guild.name + " \u2022 **ID:** `" + guild.id + "` \u2022 <t:" + timestamp + ":f>"
-      : "> **Sector:** `" + type.toUpperCase() + "` \u2022 **Server:** " + guild.name + " \u2022 <t:" + timestamp + ":T>";
-
-    comps.push(V2.section([V2.heading(titleText, 2), V2.text(serverLine)], botPFP));
-    comps.push(V2.separator());
-
-    const desc = (d.description || "").replace(/\u200b/g, "").trim();
-    if (desc) {
-      comps.push(V2.text(desc));
-      comps.push(V2.separator());
-    }
-
-    if (d.fields && d.fields.length > 0) {
-      const realFields = d.fields.filter(f =>
-        f.name && f.value &&
-        f.name.trim() !== "" &&
-        f.value.trim() !== "" &&
-        f.name !== "\u200b" &&
-        f.value !== "\u200B"
-      );
-      for (let i = 0; i < realFields.length; i += 2) {
-        const chunk = realFields.slice(i, i + 2);
-        comps.push(V2.section(chunk.map(f => V2.text("**" + f.name + "**\n" + f.value))));
-      }
-      if (realFields.length > 0) comps.push(V2.separator());
-    }
-
-    const footerText = d.footer?.text || ("interX \u2022 " + type.toUpperCase() + " Log");
-    const footerDisplay = forGlobal
-      ? "*Universal Intelligence \u2022 Sector: " + type.toUpperCase() + " \u2022 " + guild.name + "*"
-      : "*" + footerText + "*";
-    comps.push(V2.text(footerDisplay));
-
-    return V2.container(comps, accentHex);
+  if (global.logToChannel) {
+    return global.logToChannel(guild, type, payload);
   }
-
-  // Wrap existing V2 container with a bot-PFP header
-  function wrapV2(existingContainer, forGlobal) {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const serverLine = forGlobal
-      ? "> \uD83C\uDF10 **GLOBAL LOG** \u2022 **Server:** " + guild.name + " \u2022 **ID:** `" + guild.id + "` \u2022 <t:" + timestamp + ":f>"
-      : "> **Sector:** `" + type.toUpperCase() + "` \u2022 **Server:** " + guild.name + " \u2022 <t:" + timestamp + ":T>";
-    const headerCtr = V2.container([
-      V2.section([V2.text(serverLine)], botPFP),
-      V2.separator(),
-    ], accentHex);
-    return [headerCtr, existingContainer];
-  }
-
-  const isV2Input = payload && (payload.constructor?.name === "ContainerBuilder" || (payload.addSectionComponents && payload.toJSON));
-
-  // 1. UNIVERSAL LOGGING (ELOGS)
-  const ELOGS_DB = path.join(__dirname, "data/elogs.json");
-  if (fs.existsSync(ELOGS_DB)) {
-    try {
-      const eData = JSON.parse(fs.readFileSync(ELOGS_DB, "utf8"));
-      const eChannelId = eData[type] || eData["server"];
-      if (eChannelId) {
-        const eChannel = await client.channels.fetch(eChannelId).catch(() => null);
-        if (eChannel) {
-          if (isV2Input) {
-            await eChannel.send({ content: null, flags: V2_FLAG, components: wrapV2(payload, true) }).catch(() => { });
-          } else {
-            await eChannel.send({ content: null, flags: V2_FLAG, components: [embedToV2(payload, true)] }).catch(() => { });
-          }
-        }
-      }
-    } catch (e) { console.error("[LOG] Global Error:", e); }
-  }
-
-  // 1. LOCAL LOGGING
-  const LOGS_DB = path.join(__dirname, "data/logs.json");
-  if (!fs.existsSync(LOGS_DB)) return;
-
-  try {
-    const data = JSON.parse(fs.readFileSync(LOGS_DB, "utf8"));
-    const guildData = data[guild.id];
-    if (!guildData) return;
-
-    const channelId = guildData[type] || guildData["security"] || guildData["server"];
-    if (!channelId) return;
-
-    const channel = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null);
-    if (!channel) return;
-
-    if (isV2Input) {
-      await channel.send({ content: null, flags: V2_FLAG, components: wrapV2(payload, false) }).catch(() => { });
-    } else {
-      await channel.send({ content: null, flags: V2_FLAG, components: [embedToV2(payload, false)] }).catch(() => { });
-    }
-  } catch (e) { console.error("[LOG] Local Error:", e); }
 }
 
 // ───── SERVER STATS UPDATER ─────
