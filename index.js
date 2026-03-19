@@ -2799,15 +2799,38 @@ client.on("guildUpdate", async (oldGuild, newGuild) => {
 
 // 6. INVITE LOGS
 client.on("inviteCreate", async invite => {
-  const embed = new EmbedBuilder()
+  if (!invite.guild) return;
 
-    .setColor("#e40000")
+  // 1. INVITE LOCK PROTOCOL CHECK
+  const INV_CONFIG_PATH = path.join(__dirname, "data/invlock_config.json");
+  if (fs.existsSync(INV_CONFIG_PATH)) {
+    try {
+      const invConfig = JSON.parse(fs.readFileSync(INV_CONFIG_PATH, "utf8"));
+      if (invConfig[invite.guild.id] === true) {
+        // TERMINATE INVITE
+        await invite.delete("Security: invite_lock protocol active.").catch(() => { });
+
+        // LOG INTERCEPTION
+        const lockLog = new EmbedBuilder()
+          .setColor("#FF0000")
+          .setTitle("🛡️ INVITE CREATION INTERCEPTED")
+          .setDescription(`**An unauthorized invite was terminated during Lockdown.**\n\n> **Inviter:** ${invite.inviter || "Unknown"}\n> **Code:** \`${invite.code}\`\n> **Status:** Deleted Instantly`)
+          .setFooter({ text: "interX Sovereign • Lockdown Monitoring" })
+          .setTimestamp();
+        return logToChannel(invite.guild, "invite", lockLog);
+      }
+    } catch (e) { }
+  }
+
+  // 2. STANDARD INVITE LOGGING
+  const embed = new EmbedBuilder()
+    .setColor("#FF0000")
     .setTitle("🔗 INVITE CREATED")
     .setThumbnail(invite.inviter?.displayAvatarURL())
     .addFields(
       { name: "🎟️ Code", value: `\`${invite.code}\``, inline: true },
-      { name: "👤 Inviter", value: `${invite.inviter}`, inline: true },
-      { name: "📍 Channel", value: `${invite.channel}`, inline: true }
+      { name: "👤 Inviter", value: `${invite.inviter || "Unknown"}`, inline: true },
+      { name: "📍 Channel", value: `${invite.channel || "Unknown"}`, inline: true }
     )
     .setTimestamp()
     .setFooter({ text: "interX • Invite Log" });
