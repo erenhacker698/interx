@@ -1,9 +1,9 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 module.exports = (client) => {
+    if (!client.distube) return;
 
     client.distube.on("playSong", (queue, song) => {
-
         const embed = new EmbedBuilder()
             .setColor("#ff0000")
             .setTitle("🎵 Now Playing")
@@ -22,7 +22,5 @@ module.exports = (client) => {
         );
 
         queue.textChannel.send({ embeds: [embed], components: [row] });
-
     });
-
 };
