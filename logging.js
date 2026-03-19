@@ -6,23 +6,8 @@ module.exports = (client) => {
 
     // Helper: Safely use the global logToChannel from index.js
     async function safeLog(guild, type, payload) {
-        if (!guild) return;
         if (global.logToChannel) {
             return global.logToChannel(guild, type, payload);
-        } else {
-            // Local fallback logic if global isn't ready
-            const LOGS_DB = path.join(__dirname, "data/logs.json");
-            if (fs.existsSync(LOGS_DB)) {
-                try {
-                    const data = JSON.parse(fs.readFileSync(LOGS_DB, "utf8"));
-                    const gid = guild.id;
-                    const cid = data[gid]?.[type] || data[gid]?.["server"];
-                    if (cid) {
-                        const channel = await guild.channels.fetch(cid).catch(() => null);
-                        if (channel) channel.send({ embeds: [payload.data || payload] }).catch(() => {});
-                    }
-                } catch (e) {}
-            }
         }
     }
 
@@ -30,7 +15,7 @@ module.exports = (client) => {
     client.on(Events.MessageDelete, async (message) => {
         if (!message.guild || message.author?.bot) return;
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("🗑️ Message Deleted")
             .setDescription(`**Author:** ${message.author}\n**Channel:** ${message.channel}\n**Content:**\n\`\`\`\n${message.content || "None"}\n\`\`\``)
             .setTimestamp();
@@ -40,7 +25,7 @@ module.exports = (client) => {
     client.on(Events.MessageUpdate, async (oldMessage, newMessage) => {
         if (!oldMessage.guild || oldMessage.author?.bot || oldMessage.content === newMessage.content) return;
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("📝 Message Edited")
             .setDescription(`**Author:** ${oldMessage.author}\n**Channel:** ${oldMessage.channel}`)
             .addFields(
@@ -54,7 +39,7 @@ module.exports = (client) => {
     // ───── MEMBER LOGS ─────
     client.on(Events.GuildMemberAdd, (member) => {
         const embed = new EmbedBuilder()
-            .setColor("#00FF00")
+            .setColor("#df0000")
             .setTitle("➡️ Member Joined")
             .setThumbnail(member.user.displayAvatarURL())
             .setDescription(`**Member:** ${member.user} (\`${member.id}\`)\n**Created On:** <t:${Math.floor(member.user.createdTimestamp/1000)}:R>`)
@@ -64,7 +49,7 @@ module.exports = (client) => {
 
     client.on(Events.GuildMemberRemove, (member) => {
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("⬅️ Member Left")
             .setThumbnail(member.user.displayAvatarURL())
             .setDescription(`**Member:** ${member.user.tag} (\`${member.id}\`)`)
@@ -81,7 +66,7 @@ module.exports = (client) => {
             const added = newRoles.filter(r => !oldRoles.has(r.id));
             const removed = oldRoles.filter(r => !newRoles.has(r.id));
             const embed = new EmbedBuilder()
-                .setColor("#FF0000")
+                .setColor("#df0000")
                 .setTitle("👤 Role Modification")
                 .setDescription(`**Member:** ${newMember.user}`)
                 .addFields(
@@ -94,7 +79,7 @@ module.exports = (client) => {
         // Nickname
         if (oldMember.nickname !== newMember.nickname) {
             const embed = new EmbedBuilder()
-                .setColor("#FF0000")
+                .setColor("#df0000")
                 .setTitle("🏷️ Nickname Update")
                 .setDescription(`**Member:** ${newMember.user}\n**Old:** ${oldMember.nickname || "None"}\n**New:** ${newMember.nickname || "None"}`)
                 .setTimestamp();
@@ -102,10 +87,10 @@ module.exports = (client) => {
         }
     });
 
-    // ───── MOD/ADMIN LOGS (Simplified) ─────
+    // ───── MOD/ADMIN LOGS ─────
     client.on(Events.GuildBanAdd, (ban) => {
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("🚫 Member Banned")
             .setDescription(`**User:** ${ban.user.tag} (\`${ban.user.id}\`)\n**Reason:** ${ban.reason || "No reason provided"}`)
             .setTimestamp();
@@ -114,7 +99,7 @@ module.exports = (client) => {
 
     client.on(Events.GuildBanRemove, (ban) => {
         const embed = new EmbedBuilder()
-            .setColor("#00FF00")
+            .setColor("#df0000")
             .setTitle("✅ Member Unbanned")
             .setDescription(`**User:** ${ban.user.tag} (\`${ban.user.id}\`)`)
             .setTimestamp();
@@ -125,7 +110,7 @@ module.exports = (client) => {
     client.on(Events.ChannelCreate, (channel) => {
         if (!channel.guild) return;
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("📁 Channel Created")
             .setDescription(`**Name:** ${channel}\n**ID:** \`${channel.id}\``)
             .setTimestamp();
@@ -135,7 +120,7 @@ module.exports = (client) => {
     client.on(Events.ChannelDelete, (channel) => {
         if (!channel.guild) return;
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("💣 Channel Deleted")
             .setDescription(`**Name:** ${channel.name}\n**ID:** \`${channel.id}\``)
             .setTimestamp();
@@ -148,21 +133,21 @@ module.exports = (client) => {
         if (!member) return;
         if (!oldState.channelId && newState.channelId) {
             const embed = new EmbedBuilder()
-                .setColor("#FF0000")
+                .setColor("#df0000")
                 .setTitle("🔊 Voice Join")
                 .setDescription(`**Member:** ${member.user}\n**Channel:** ${newState.channel}`)
                 .setTimestamp();
             safeLog(member.guild, "voice", embed);
         } else if (oldState.channelId && !newState.channelId) {
             const embed = new EmbedBuilder()
-                .setColor("#FF0000")
+                .setColor("#df0000")
                 .setTitle("🔇 Voice Leave")
                 .setDescription(`**Member:** ${member.user}\n**Channel:** ${oldState.channel}`)
                 .setTimestamp();
             safeLog(member.guild, "voice", embed);
         } else if (oldState.channelId !== newState.channelId) {
             const embed = new EmbedBuilder()
-                .setColor("#FF0000")
+                .setColor("#df0000")
                 .setTitle("🔁 Voice Move")
                 .setDescription(`**Member:** ${member.user}\n**From:** ${oldState.channel}\n**To:** ${newState.channel}`)
                 .setTimestamp();
@@ -173,7 +158,7 @@ module.exports = (client) => {
     // ───── ROLE LOGS ─────
     client.on(Events.GuildRoleCreate, (role) => {
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("🛡️ Role Created")
             .setDescription(`**Name:** ${role.name}\n**ID:** \`${role.id}\``)
             .setTimestamp();
@@ -182,7 +167,7 @@ module.exports = (client) => {
 
     client.on(Events.GuildRoleDelete, (role) => {
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("🛡️ Role Deleted")
             .setDescription(`**Name:** ${role.name}\n**ID:** \`${role.id}\``)
             .setTimestamp();
@@ -192,7 +177,7 @@ module.exports = (client) => {
     // ───── INVITE LOGS ─────
     client.on(Events.InviteCreate, (invite) => {
         const embed = new EmbedBuilder()
-            .setColor("#FF0000")
+            .setColor("#df0000")
             .setTitle("🎟️ Invite Created")
             .setDescription(`**Code:** \`${invite.code}\`\n**Channel:** ${invite.channel}\n**Executor:** ${invite.invoker}`)
             .setTimestamp();
@@ -203,7 +188,7 @@ module.exports = (client) => {
     client.on(Events.GuildUpdate, (oldGuild, newGuild) => {
         if (oldGuild.name !== newGuild.name) {
             const embed = new EmbedBuilder()
-                .setColor("#FF0000")
+                .setColor("#df0000")
                 .setTitle("🏛️ Server Name Updated")
                 .setDescription(`**Old:** ${oldGuild.name}\n**New:** ${newGuild.name}`)
                 .setTimestamp();

@@ -141,6 +141,24 @@ client.commands = new Map();
 require("./music/distube")(client); // Initializes client.distube
 require("./ai/aiResponder.js")(client);
 
+// ───── CORE LOGGING KERNEL (LIFETIME SYNC) ─────
+global.logToChannel = async (guild, type, payload) => {
+  if (!guild) return;
+  const LOGS_DB = path.join(__dirname, "data/logs.json");
+  if (!fs.existsSync(LOGS_DB)) return;
+  try {
+    const data = JSON.parse(fs.readFileSync(LOGS_DB, "utf8"));
+    const cid = data[guild.id]?.[type] || data[guild.id]?.["server"];
+    if (!cid) return;
+    const channel = await guild.channels.fetch(cid).catch(() => null);
+    if (!channel) return;
+    const embed = payload instanceof EmbedBuilder ? payload : new EmbedBuilder(payload);
+    if (!embed.data.color) embed.setColor("#df0000");
+    return channel.send({ embeds: [embed] }).catch(() => {});
+  } catch (e) {
+    console.error(`[LogKernel Error]: ${e.message}`);
+  }
+};
 // ───── UNIVERSAL EVENT LOADER ─────
 // Loads both functional (Legacy) and modular (Object) events
 const eventsDir = path.join(__dirname, "events");
