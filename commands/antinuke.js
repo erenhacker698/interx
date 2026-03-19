@@ -110,7 +110,7 @@ module.exports = {
         if (!sub || sub === "status" || sub === "settings") {
             const embed = new EmbedBuilder()
                 .setTitle('🛡️ Anti-Nuke System Status')
-                .setColor(config.enabled ? "#ec0e0e" : "#e74c3c")
+                .setColor(config.enabled ? "#df0000" : "#e74c3c")
                 .addFields(
                     { name: "Sovereign Shield", value: config.enabled ? "🟢 **ACTIVE**" : "🔴 **OFFLINE**", inline: true },
                     { name: "Execution Protocol", value: `\`${config.punishment.toUpperCase()}\``, inline: true },
@@ -124,7 +124,7 @@ module.exports = {
         if (sub === "on" || sub === "enable") {
             config.enabled = true;
             saveConfig(config);
-            return message.reply({ embeds: [new EmbedBuilder().setColor("#ca0000").setDescription("✅ **Shields Activated:** Anti Nuke system is now monitoring all administrative events.")] });
+            return message.reply({ embeds: [new EmbedBuilder().setColor("#df0000").setDescription("✅ **Shields Activated:** Anti Nuke system is now monitoring all administrative events.")] });
         }
 
         if (sub === "off" || sub === "disable") {
@@ -140,18 +140,18 @@ module.exports = {
             }
             config.punishment = mode;
             saveConfig(config);
-            return message.reply({ embeds: [new EmbedBuilder().setColor("#ff1c1c").setDescription(`⚙️ **Punishment Updated:** Punishment set to \`${mode.toUpperCase()}\`.`)] });
+            return message.reply({ embeds: [new EmbedBuilder().setColor("#df0000").setDescription(`⚙️ **Punishment Updated:** Punishment set to \`${mode.toUpperCase()}\`.`)] });
         }
 
         if (sub === "whitelist" || sub === "exempt" || sub === "wl") {
             const action = args[1]?.toLowerCase();
-            const role = message.mentions.roles.first();
+            const role = message.mentions.roles.first() || message.guild.roles.cache.get(args[2]);
 
             if (action === "add" && role) {
                 if (!config.exemptRoles.includes(role.id)) {
                     config.exemptRoles.push(role.id);
                     saveConfig(config);
-                    return message.reply({ embeds: [new EmbedBuilder().setColor("#ff0000").setDescription(`✅ **Access Granted:** ${role} is now immune to Anti-Nuke protocols.`)] });
+                    return message.reply({ embeds: [new EmbedBuilder().setColor("#df0000").setDescription(`✅ **Access Granted:** ${role} is now immune to Anti-Nuke protocols.`)] });
                 }
                 return message.reply("Skipping: Role already has immunity.");
             }
@@ -159,10 +159,20 @@ module.exports = {
             if (action === "remove" && role) {
                 config.exemptRoles = config.exemptRoles.filter(id => id !== role.id);
                 saveConfig(config);
-                return message.reply({ embeds: [new EmbedBuilder().setColor("#e74c3c").setDescription(`❌ **Access Revoked:** ${role} immunity has been terminated.`)] });
+                return message.reply({ embeds: [new EmbedBuilder().setColor("#df0000").setDescription(`❌ **Access Revoked:** ${role} immunity has been terminated.`)] });
             }
 
-            return message.reply("Usage: `!antinuke wl add/remove @role` or `!antinuke wl list` (Coming soon)");
+            if (action === "list") {
+                const roles = config.exemptRoles.length > 0 ? config.exemptRoles.map(id => `<@&${id}>`).join("\n") : "No roles whitelisted.";
+                const embed = new EmbedBuilder()
+                    .setColor("#df0000")
+                    .setTitle("📜 [ ANTI_NUKE_IMMUNE_ROLES ]")
+                    .setDescription(`### **Exempt Authority Roles**\n\n${roles}`)
+                    .setFooter({ text: "interX • Shield Protocol" });
+                return message.reply({ embeds: [embed] });
+            }
+
+            return message.reply("Usage: `!antinuke wl add/remove @role` or `!antinuke wl list`.");
         }
 
         // Help menu if no valid subcommand
