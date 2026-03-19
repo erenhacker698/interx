@@ -6,14 +6,11 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("
 module.exports = (client) => {
 
     client.distube = new DisTube(client, {
-        emitNewSongOnly: true,
-        leaveOnEmpty: false,
-        leaveOnFinish: false,
-        leaveOnStop: false,
         plugins: [
             new YouTubePlugin(),
             new SpotifyPlugin()
-        ]
+        ],
+        emitNewSongOnly: true
     });
 
     // ───────────────── DISCORD UI COMPONENTS ─────────────────
