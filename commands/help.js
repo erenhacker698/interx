@@ -14,9 +14,10 @@ module.exports = {
     description: "Construct the interX help interface.",
     aliases: ["h", "commands"],
 
-    async execute(message, args, client) {
+    async execute(message, args) { // Removed third argument 'client'
         // Support both Message and Interaction
         const user = message.author || message.user;
+        const client = message.client; // Get client from message/interaction
         const isInteraction = !!message.options;
         const PREFIX = "!"; // Assuming ! based on index.js scan
 
