@@ -62,7 +62,6 @@ module.exports = {
                 })
                 .setTimestamp();
 
-            // Simplified Selects to find the bug
             const mainSelector = new StringSelectMenuBuilder()
                 .setCustomId('main_features')
                 .setPlaceholder('MAIN FEATURES')
@@ -92,7 +91,7 @@ module.exports = {
             const buttons = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('first').setEmoji('⏪').setStyle(ButtonStyle.Secondary).setDisabled(true),
                 new ButtonBuilder().setCustomId('back').setEmoji('◀️').setStyle(ButtonStyle.Secondary).setDisabled(true),
-                new ButtonBuilder().setCustomId('delete_help').setCustomId('delete').setEmoji('🗑️').setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId('delete').setEmoji('🗑️').setStyle(ButtonStyle.Danger),
                 new ButtonBuilder().setCustomId('next').setEmoji('▶️').setStyle(ButtonStyle.Secondary).setDisabled(true),
                 new ButtonBuilder().setCustomId('last').setEmoji('⏩').setStyle(ButtonStyle.Secondary).setDisabled(true)
             );
@@ -101,12 +100,41 @@ module.exports = {
             const row2 = new ActionRowBuilder().addComponents(extraSelector);
 
             const components = [row1, row2, buttons];
+            let response;
             
             if (isInteraction) {
-                return await message.reply({ embeds: [homeEmbed], components: components, fetchReply: true });
+                response = await message.reply({ embeds: [homeEmbed], components: components, fetchReply: true });
             } else {
-                return await message.reply({ embeds: [homeEmbed], components: components });
+                response = await message.reply({ embeds: [homeEmbed], components: components });
             }
+
+            const collector = response.createMessageComponentCollector({
+                filter: (i) => i.user.id === author.id,
+                time: 60000
+            });
+
+            collector.on('collect', async (i) => {
+                if (i.customId === 'delete') {
+                    return await i.message.delete().catch(() => {});
+                }
+                
+                const selected = i.values[0];
+                if (selected === 'home') {
+                    return await i.update({ embeds: [homeEmbed] });
+                }
+
+                const categoryEmbed = new EmbedBuilder()
+                    .setColor("#FF0000")
+                    .setTitle(`🛡️ [ ${selected.toUpperCase()} PROTOCOLS ]`)
+                    .setDescription(`**Operational components for the ${i.customId.replace("_", " ")} module.**\n\nSelected Scope: \`${selected}\`\n\n> *Accessing database registry...*`)
+                    .setFooter({ text: `interX Security • Protocol: ${selected}` });
+
+                await i.update({ embeds: [categoryEmbed] });
+            });
+
+            collector.on('end', () => {
+                response.edit({ components: [] }).catch(() => {});
+            });
 
         } catch (error) {
             console.error("[Help Error]:", error);
