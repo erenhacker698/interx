@@ -135,9 +135,9 @@ module.exports = {
 
         if (config.embed.image) embed.setImage(config.embed.image);
 
-        return channel.send({ 
+        return channel.send({
             content: parseVariables(config.message, member),
             embeds: [embed]
-        }).catch(() => {});
+        }).catch(() => { });
     }
 };

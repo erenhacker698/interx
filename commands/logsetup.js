@@ -23,19 +23,19 @@ module.exports = {
         }
 
         const logChannels = {
-            message: "InterX-message",
-            joins: "InterX-joins",
-            leaves: "InterX-leaves",
-            mod: "InterX-moderation",
-            security: "InterX-security",
-            server: "InterX-server",
-            role: "InterX-role",
-            voice: "InterX-voice",
-            member: "InterX-member",
-            channel: "InterX-channel",
-            invite: "InterX-invite",
-            antinuke: "InterX-antinuke",
-            ban: "InterX-ban"
+            message: "message logs",
+            joins: "joins logs",
+            leaves: "leaves logs",
+            mod: "moderation logs",
+            security: "security logs",
+            server: "server logs",
+            role: "role logs",
+            voice: "voice logs",
+            member: "member logs",
+            channel: "channel logs ",
+            invite: "invite logs",
+            antinuke: "antinuke-logs",
+            ban: "ban logs"
         };
 
         const LOGS_DB = path.join(__dirname, "../data/logs.json");
