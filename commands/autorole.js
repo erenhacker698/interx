@@ -31,7 +31,7 @@ module.exports = {
         // 1. SET AUTOROLE
         if (sub === "set" || sub === "add") {
             const role = message.mentions.roles.first() || message.guild.roles.cache.get(args[1]);
-            
+
             if (!role) {
                 const errorEmbed = new EmbedBuilder()
                     .setColor("#FF0000")
