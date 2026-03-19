@@ -3288,7 +3288,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   }
 
   // 1.8. TEMP VC SYSTEM: AUTO-CLEANUP
-  if (oldState.channelId && !newState.channelId) {
+  if (oldState.channelId && (oldState.channelId !== newState.channelId)) {
     const TEMP_VCS_PATH = path.join(__dirname, "data/temp_vcs.json");
     if (fs.existsSync(TEMP_VCS_PATH)) {
       try {
