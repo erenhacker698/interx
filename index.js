@@ -1637,6 +1637,26 @@ client.on("messageCreate", async message => {
     const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
     if (!command) return;
 
+    // ───── BOT COMMAND LOCK CHECK ─────
+    if (!isBotOwner && command.name !== "btcdlcks") {
+      const LOCK_DB = path.join(__dirname, "data/cmd_lock.json");
+      if (fs.existsSync(LOCK_DB)) {
+        try {
+          const lockData = JSON.parse(fs.readFileSync(LOCK_DB, "utf8"));
+          if (lockData.locked) {
+            const embed = new EmbedBuilder()
+              .setColor("#FF0000")
+              .setTitle("🔒 [ ACCESS_DENIED ]")
+              .setAuthor({ name: "interX Gatekeeper", iconURL: client.user.displayAvatarURL() })
+              .setDescription("### **COMMANDS ARE TEMPORARILY LOCKED**\n> The bot is currently in **Maintenance / Owner-Only Mode**.\n\n> *\"Access to these commands has been restricted by the Architect for security or updates.\"*")
+              .setFooter({ text: "interX • System Lockdown" })
+              .setTimestamp();
+            return message.reply({ embeds: [embed] });
+          }
+        } catch (e) { }
+      }
+    }
+
     // 2. Action/Admin Logging
     const embed = new EmbedBuilder()
       .setColor(isBotOwner ? "#FFD700" : "#34495E")
@@ -1743,6 +1763,26 @@ client.on("interactionCreate", async interaction => {
   if (!command) return;
 
   const isBotOwner = isBypass(interaction.user.id);
+
+  // ───── BOT COMMAND LOCK CHECK (SLASH) ─────
+  if (!isBotOwner && command.name !== "btcdlcks") {
+    const LOCK_DB = path.join(__dirname, "data/cmd_lock.json");
+    if (fs.existsSync(LOCK_DB)) {
+      try {
+        const lockData = JSON.parse(fs.readFileSync(LOCK_DB, "utf8"));
+        if (lockData.locked) {
+          const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("🔒 [ ACCESS_DENIED ]")
+            .setAuthor({ name: "interX Gatekeeper", iconURL: client.user.displayAvatarURL() })
+            .setDescription("### **COMMANDS ARE TEMPORARILY LOCKED**\n> The bot is currently in **Maintenance / Owner-Only Mode**.\n\n> *\"Access to these commands has been restricted by the Architect for security or updates.\"*")
+            .setFooter({ text: "interX • System Lockdown" })
+            .setTimestamp();
+          return interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+      } catch (e) { }
+    }
+  }
   const isServerOwner = interaction.guild.ownerId === interaction.user.id;
 
   // Whitelist Check
