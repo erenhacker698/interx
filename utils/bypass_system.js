@@ -6,5 +6,6 @@ function isBypass(userId) {
 
 module.exports = {
     BOT_OWNER_ID,
+    BOT_DEV_ID: "0",
     isBypass
 };
