@@ -140,32 +140,47 @@ module.exports = {
         .addSubcommand(s => s.setName("disable").setDescription("Disable the automatic jail trap"))
         .addSubcommand(s => s.setName("setup").setDescription("Generate the jail channels manually")),
 
-    // Prefix Handler
     async execute(message, args, client) {
         this.attachEvents(client);
 
-        if (args[0] === "setup") {
-            const msg = await message.reply("⚙️ Constructing Jail layout...");
-            await setupJail(message.guild);
-            return msg.edit("✅ Jail structural format built dynamically!");
+        // Safely extract subcommand whether it's prefix (args[0]) or slash (message.options)
+        let sub = args[0]?.toLowerCase();
+        if (!sub && message.options && typeof message.options.getSubcommand === 'function') {
+            try { sub = message.options.getSubcommand(); } catch (e) {}
+        }
+
+        const guildId = message.guild?.id;
+        if (!guildId) return message.reply("This command must be used in a server.");
+
+        if (sub === "setup") {
+            let msg;
+            if (message.isChatInputCommand && message.isChatInputCommand()) {
+                await message.reply({ content: "⚙️ Constructing Jail layout...", fetchReply: true });
+                await setupJail(message.guild);
+                return message.editReply({ content: "✅ Jail structural format built dynamically!" });
+            } else {
+                msg = await message.reply("⚙️ Constructing Jail layout...");
+                await setupJail(message.guild);
+                if (msg && msg.edit) return msg.edit("✅ Jail structural format built dynamically!");
+            }
+            return;
         }
 
         const config = loadConfig();
-        const guildId = message.guild.id;
 
-        if (args[0] === "enable") {
+        if (sub === "enable") {
             config[guildId] = { enabled: true };
             saveConfig(config);
             return message.reply({ embeds: [new EmbedBuilder().setColor("#00FF00").setTitle("🚨 Jail Trap Activated").setDescription("The trap is set! Anyone touching the server name, channels, or roles will be instantly thrown into `#jail-chat`.")] });
         }
 
-        if (args[0] === "disable") {
+        if (sub === "disable") {
             config[guildId] = { enabled: false };
             saveConfig(config);
             return message.reply({ embeds: [new EmbedBuilder().setColor("#FF0000").setTitle("❌ Jail Trap Deactivated").setDescription("Automated jailing has been paused.")] });
         }
 
-        return message.reply({ embeds: [new EmbedBuilder().setColor("#2B2D31").setDescription("Usage: `!jail setup`, `!jail enable`, `!jail disable`\n*(Type !jail enable to start automatically arresting structural griefers!)*")] });
+        return message.reply({ embeds: [new EmbedBuilder().setColor("#2B2D31").setDescription("Usage: `/jail setup`, `/jail enable`, `/jail disable`\n*(Type !jail enable to start automatically arresting structural griefers!)*")] });
     },
 
     // Slash Handler
