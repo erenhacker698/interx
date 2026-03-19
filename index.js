@@ -3249,22 +3249,36 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         if (controlChannel) {
           const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
           const vEmbed = new EmbedBuilder()
-            .setColor("#da0000")
-            .setTitle("🎙️ Temporary Voice Channel Created")
-            .setDescription(`**Owner:** ${newState.member}\n**Channel:** ${newChannel}\n\nControls have been generated for your session.`)
+            .setColor("#FF0000") // Core interX Red
+            .setAuthor({ name: "interX | Voice Node Provisioned", iconURL: newState.guild.iconURL() })
+            .setTitle("🛡️ [ AUDIO_CHANNEL_SECURED ]")
+            .setThumbnail(newState.member.user.displayAvatarURL({ dynamic: true }))
+            .setDescription(
+                `### **Session Configuration Node**\n\n` +
+                `> **Owner:** ${newState.member}\n` +
+                `> **Module:** Temporary Audio Cell\n` +
+                `> **Status:** Operational\n\n` +
+                `**Control Panel:**\n` +
+                `Use the interface below to regulate access and privacy for your current voice session.`
+            )
+            .addFields(
+                { name: "🔒 Privacy", value: "Toggle visibility & access", inline: true },
+                { name: "🔊 Management", value: "Mute or rename node", inline: true }
+            )
+            .setFooter({ text: "interX Sovereign • Adaptive Infrastructure" })
             .setTimestamp();
 
           const row1 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`vtc_lock_${newChannel.id}`).setLabel("Lock Channel").setStyle(ButtonStyle.Secondary).setEmoji("🔒"),
-            new ButtonBuilder().setCustomId(`vtc_unlock_${newChannel.id}`).setLabel("Unlock Channel").setStyle(ButtonStyle.Secondary).setEmoji("🔓"),
-            new ButtonBuilder().setCustomId(`vtc_hide_${newChannel.id}`).setLabel("Hide Channel").setStyle(ButtonStyle.Secondary).setEmoji("👻"),
-            new ButtonBuilder().setCustomId(`vtc_show_${newChannel.id}`).setLabel("Show Channel").setStyle(ButtonStyle.Secondary).setEmoji("👁️")
+            new ButtonBuilder().setCustomId(`vtc_lock_${newChannel.id}`).setLabel("LOCK").setStyle(ButtonStyle.Secondary).setEmoji("🔒"),
+            new ButtonBuilder().setCustomId(`vtc_unlock_${newChannel.id}`).setLabel("UNLOCK").setStyle(ButtonStyle.Secondary).setEmoji("🔓"),
+            new ButtonBuilder().setCustomId(`vtc_hide_${newChannel.id}`).setLabel("HIDE").setStyle(ButtonStyle.Secondary).setEmoji("👻"),
+            new ButtonBuilder().setCustomId(`vtc_show_${newChannel.id}`).setLabel("SHOW").setStyle(ButtonStyle.Secondary).setEmoji("👁️")
           );
 
           const row2 = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`vtc_mute_${newChannel.id}`).setLabel("Mute All").setStyle(ButtonStyle.Secondary).setEmoji("🔇"),
-            new ButtonBuilder().setCustomId(`vtc_unmute_${newChannel.id}`).setLabel("Unmute All").setStyle(ButtonStyle.Secondary).setEmoji("🔊"),
-            new ButtonBuilder().setCustomId(`vtc_rename_${newChannel.id}`).setLabel("Rename").setStyle(ButtonStyle.Primary).setEmoji("🖊️")
+            new ButtonBuilder().setCustomId(`vtc_mute_${newChannel.id}`).setLabel("MUTE ALL").setStyle(ButtonStyle.Secondary).setEmoji("🔇"),
+            new ButtonBuilder().setCustomId(`vtc_unmute_${newChannel.id}`).setLabel("UNMUTE ALL").setStyle(ButtonStyle.Secondary).setEmoji("🔊"),
+            new ButtonBuilder().setCustomId(`vtc_rename_${newChannel.id}`).setLabel("RENAME").setStyle(ButtonStyle.Danger).setEmoji("🖊️")
           );
 
           await controlChannel.send({ content: `${newState.member}`, embeds: [vEmbed], components: [row1, row2] });
