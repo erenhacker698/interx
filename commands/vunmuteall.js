@@ -8,44 +8,56 @@ module.exports = {
     permissions: [PermissionsBitField.Flags.MuteMembers],
 
     async execute(message, args) {
-        const isBotOwner = ((message.author.id === BOT_OWNER_ID || message.author.id === BOT_DEV_ID));
+        const isBotOwner = (message.author.id === BOT_OWNER_ID || message.author.id === BOT_DEV_ID);
         if (!isBotOwner && !message.member.permissions.has(PermissionsBitField.Flags.MuteMembers)) {
-            return message.reply("🚫 You don't have permission.");
+            return message.reply({ content: "⚠️ **[ ACCESS_DENIED ]** Administrator privileges required." });
         }
 
         const channel = message.member.voice.channel;
-        if (!channel) return message.reply("⚠️ You must be in a voice channel.");
+        if (!channel) {
+            const errorEmbed = new EmbedBuilder()
+                .setColor("#00FF00")
+                .setDescription("⚠️ **Voice Sync Error:** You must be connected to a voice channel to restore signals.");
+            return message.reply({ embeds: [errorEmbed] });
+        }
 
         const members = channel.members.filter(m => !m.user.bot && m.voice.serverMute);
 
-        if (members.size === 0) return message.reply("⚠️ No one to unmute.");
+        if (members.size === 0) {
+            return message.reply({ embeds: [new EmbedBuilder().setColor("#00FF00").setDescription("⚠️ **Status:** No muted targets found for reactivation.")] });
+        }
 
-        const statusMsg = await message.reply({
-            content: null,
-            embeds: [new EmbedBuilder().setColor(0xFF0033).setTitle("🔊 MASS VOICE UNMUTE").setDescription(`Processing **${members.size}** members in **${channel.name}**...`).setFooter({ text: "interX • Security" }).setTimestamp()]
-        });
+        const statusEmbed = new EmbedBuilder()
+            .setColor("#00FF00")
+            .setAuthor({ name: "interX Sovereign Unmute", iconURL: message.client.user.displayAvatarURL() })
+            .setTitle("🔊 [ RE-SYNCING_SIGNALS ]")
+            .setDescription(`> **Target Channel:** ${channel.name}\n> **Payload:** \`${members.size}\` Members\n\n*Restoring carrier frequency...*`)
+            .setTimestamp();
 
-        // TURBO MASS UNMUTE (PARALLEL)
-        const unmuteTasks = members.map(member =>
-            member.voice.setMute(false, "Mass Unmute Protocol").catch(() => { })
+        const statusMsg = await message.reply({ embeds: [statusEmbed] });
+
+        // TURBO MASS UNMUTE
+        const unmuteTasks = Array.from(members.values()).map(member =>
+            member.voice.setMute(false, "Mass Unmute Protocol Executed").catch(() => { })
         );
 
-        await Promise.allSettled(Array.from(unmuteTasks.values()));
+        await Promise.allSettled(unmuteTasks);
 
-        const { AttachmentBuilder } = require("discord.js");
-        const unmuteIcon = new AttachmentBuilder("./assets/vunmute.png", { name: "vunmute.png" });
+        const finalEmbed = new EmbedBuilder()
+            .setColor("#00FF00")
+            .setAuthor({ name: "interX Sovereign Control", iconURL: message.client.user.displayAvatarURL() })
+            .setTitle("🔊 [ MASS_RECONNECT_SUCCESS ]")
+            .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
+            .setDescription(
+                `### **Voice Node Restored**\n\n` +
+                `> **Channel:** <#${channel.id}>\n` +
+                `> **Total Unmuted:** \`${members.size}\` Members\n` +
+                `> **Status:** All signals re-established.\n\n` +
+                `**Authority:** ${message.author}`
+            )
+            .setFooter({ text: "interX Sovereign • Connection Stable" })
+            .setTimestamp();
 
-        await statusMsg.edit({
-            content: null,
-            files: [unmuteIcon],
-            components: [V2.container([
-                V2.section([
-                    "MASS UNMUTE COMPLETE",
-                    `**Channel:** ${channel.name}\n**Total Unmuted:** \`${members.size}\` members`
-                ], "attachment://vunmute.png"),
-                `> **Actioned By:** ${message.author}`,
-                "*interX • Sovereign Voice Control*"
-            ])]
-        });
+        await statusMsg.edit({ embeds: [finalEmbed] });
     }
 };
