@@ -21,6 +21,27 @@ module.exports = {
             const isInteraction = !!message.options;
             const PREFIX = "!"; 
 
+            // ───── CATEGORY MAPPING ─────
+            const categories = {
+                antinuke: ["antinuke", "antiraid", "security", "setupsecurity", "whitelist", "authwipe", "createbaseline", "rebuild", "selfProtect"],
+                moderation: ["ban", "kick", "mute", "unmute", "timeout", "untimeout", "warn", "warnings", "clear", "purge", "jail", "left", "slowmode", "vckick", "vmute", "vunmute", "vmuteall", "vunmuteall", "vmoveall"],
+                utility: ["avatar", "banner", "botinfo", "devinfo", "serverinfo", "userinfo", "roleinfo", "stats", "serverstats", "invites", "ping", "suggest", "poll", "qr", "audit"],
+                security: ["serverlock", "serverunlock", "lock", "unlock", "lockvc", "unlockvc", "hide", "show", "chperm", "roleperm", "btcdlcks", "btcmdlocks"],
+                autorole: ["autorole", "addrole", "removerole", "temprole", "reactionrole", "massrole", "testroles"],
+                server: ["createch", "deletech", "renamech", "createrole", "deleterole", "rolecopy", "setguildavatar", "setguildbanner", "setup", "backup", "restore", "panic"],
+                voice: ["createvc", "deletevc", "renamevc", "locksound", "unlocksound", "vdefend", "vundefend", "setupvtc", "sethomevc", "muv", "muvu"],
+                logging: ["log", "logsetup", "elog", "ghostLogger"],
+                welcomer: ["welcome"],
+                automod: ["automod", "spamblacklist"],
+                ignore: ["blacklist"],
+                ticket: ["ticket"],
+                sticky: ["stick"],
+                verification: ["setupverify"],
+                music: ["music", "play", "skip", "stop", "volume", "queue", "pause", "resume"],
+                fun: ["mimic", "say", "embed", "show"],
+                extra: ["vanityroles", "counting", "j2c", "boost", "leveling", "encryption", "minecraft", "joindm", "birthday", "customrole"]
+            };
+
             const homeEmbed = new EmbedBuilder()
                 .setColor("#FF0000")
                 .setAuthor({ 
@@ -67,25 +88,28 @@ module.exports = {
                 .setPlaceholder('MAIN FEATURES')
                 .addOptions(
                     { label: 'Home', value: 'home', emoji: '🏠', description: 'Return to console' },
-                    { label: 'Security', value: 'antinuke', emoji: '🛡️', description: 'Antinuke protocols' },
-                    { label: 'Moderation', value: 'moderation', emoji: '🤖', description: 'Mod protocols' },
-                    { label: 'Utility', value: 'utility', emoji: '🔧', description: 'Utility tools' },
-                    { label: 'General', value: 'server_general', emoji: '📂', description: 'General commands' },
-                    { label: 'Automod', value: 'automod', emoji: '🤖', description: 'Auto-security' },
-                    { label: 'Ignore', value: 'ignore', emoji: '🚫', description: 'Ignore list' },
-                    { label: 'Voice', value: 'voice', emoji: '🔊', description: 'Voice controls' },
-                    { label: 'Welcomer', value: 'welcomer', emoji: '🌱', description: 'User greetings' },
-                    { label: 'Giveaway', value: 'giveaway', emoji: '🎉', description: 'Prize management' }
+                    { label: 'Antinuke', value: 'antinuke', emoji: '🛡️', description: 'Antinuke security protocols' },
+                    { label: 'Moderation', value: 'moderation', emoji: '🤖', description: 'Admin management tools' },
+                    { label: 'Utility', value: 'utility', emoji: '🔧', description: 'System information & tools' },
+                    { label: 'Security', value: 'security', emoji: '⚔️', description: 'Channel & server locking' },
+                    { label: 'Autorole', value: 'autorole', emoji: '👤', description: 'Role assignment automation' },
+                    { label: 'Server', value: 'server', emoji: '🌐', description: 'Server structure management' },
+                    { label: 'Voice', value: 'voice', emoji: '🔊', description: 'Voice channel protocols' },
+                    { label: 'Automod', value: 'automod', emoji: '📡', description: 'Automated signal responses' },
+                    { label: 'Welcomer', value: 'welcomer', emoji: '🌱', description: 'Greeting configurations' },
+                    { label: 'Ticket', value: 'ticket', emoji: '🎟️', description: 'Customer support nodes' }
                 );
 
             const extraSelector = new StringSelectMenuBuilder()
                 .setCustomId('extra_features')
                 .setPlaceholder('EXTRA FEATURES')
                 .addOptions(
-                    { label: 'Logging', value: 'logging', emoji: '📲', description: 'Log system' },
-                    { label: 'Vanity Roles', value: 'vanity', emoji: '⭐', description: 'Prestige roles' },
-                    { label: 'Autoreact', value: 'autoreact', emoji: '📡', description: 'Signal responses' },
-                    { label: 'Verification', value: 'verify', emoji: '⚡', description: 'Identity scan' }
+                    { label: 'Logging', value: 'logging', emoji: '📲', description: 'Audit trail management' },
+                    { label: 'Ignore', value: 'ignore', emoji: '🚫', description: 'Blacklist management' },
+                    { label: 'Music', value: 'music', emoji: '🎵', description: 'High-fidelity audio stream' },
+                    { label: 'Verification', value: 'verification', emoji: '⚡', description: 'Identity scan protocols' },
+                    { label: 'Sticky', value: 'sticky', emoji: '📌', description: 'Pinned message automation' },
+                    { label: 'Fun', value: 'fun', emoji: '🚀', description: 'User engagement scripts' }
                 );
 
             const buttons = new ActionRowBuilder().addComponents(
@@ -110,7 +134,7 @@ module.exports = {
 
             const collector = response.createMessageComponentCollector({
                 filter: (i) => i.user.id === author.id,
-                time: 60000
+                time: 120000
             });
 
             collector.on('collect', async (i) => {
@@ -123,11 +147,14 @@ module.exports = {
                     return await i.update({ embeds: [homeEmbed] });
                 }
 
+                const cmdList = categories[selected] || [];
+                const formattedCmds = cmdList.map(c => `\`${c}\``).join(", ") || "No modules detected in this node.";
+
                 const categoryEmbed = new EmbedBuilder()
                     .setColor("#FF0000")
                     .setTitle(`🛡️ [ ${selected.toUpperCase()} PROTOCOLS ]`)
-                    .setDescription(`**Operational components for the ${i.customId.replace("_", " ")} module.**\n\nSelected Scope: \`${selected}\`\n\n> *Accessing database registry...*`)
-                    .setFooter({ text: `interX Security • Protocol: ${selected}` });
+                    .setDescription(`**Operational components for the ${selected} infrastructure are listed below.**\n\n${formattedCmds}\n\n> *Use \`${PREFIX}help <command>\` for deep-scan details.*`)
+                    .setFooter({ text: `interX Security • Protocol: ${selected} | Commands: ${cmdList.length}` });
 
                 await i.update({ embeds: [categoryEmbed] });
             });
@@ -138,7 +165,6 @@ module.exports = {
 
         } catch (error) {
             console.error("[Help Error]:", error);
-            if (message.reply) message.reply("❌ **INTERX_FAILSAFE_TRIGGERED**").catch(() => {});
         }
     }
 };
