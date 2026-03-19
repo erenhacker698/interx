@@ -1,5 +1,5 @@
-const { EmbedBuilder } = require("discord.js");
-const { BOT_OWNER_ID, BOT_DEV_ID } = require("../config");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { BOT_OWNER_ID, BOT_DEV_ID, EMBED_COLOR } = require("../config");
 
 module.exports = {
     name: "devinfo",
@@ -10,60 +10,46 @@ module.exports = {
         const clientUser = message.client.user;
 
         const embed = new EmbedBuilder()
-            .setColor("#FF1A1A") // Red Theme
+            .setColor(EMBED_COLOR || "#FF1A1A")
             .setAuthor({
-                name: "INTERX • SYSTEM ARCHITECTS",
-                iconURL: clientUser.displayAvatarURL()
+                name: "interX • Premium Security Architecture",
+                iconURL: clientUser.displayAvatarURL({ size: 1024, dynamic: true })
             })
-            .setThumbnail(clientUser.displayAvatarURL())
-
+            .setThumbnail(clientUser.displayAvatarURL({ size: 1024, dynamic: true }))
             .setDescription(
-                "```ansi\n" +
-                "\u001b[2;31minterX CORE SYSTEM DATA\u001b[0m\n" +
-                "```"
+                "### 🛡️ Sovereign Core Intelligence\n" +
+                "> Welcome to **interX**, a paramount defense & moderation protocol designed for uninterrupted sovereignty.\n\n" +
+                "**👑 Lead Architect & Owner**\n" +
+                `└ <@${BOT_OWNER_ID}>\n\n` +
+                "**🧠 System Mentor & Visionary**\n" +
+                `└ <@${BOT_DEV_ID}>\n`
             )
-
             .addFields(
                 {
-                    name: "👑 Lead Developer",
-                    value: `<@${BOT_OWNER_ID}>`,
+                    name: "⚙️ Architecture Protocol",
+                    value: "```yaml\nRuntime: Node.js\nLibrary: Discord.js v14\nCore: interX v2.1\n```",
                     inline: true
                 },
                 {
-                    name: "🧠 Mentor / Guide",
-                    value: `<@783953632974471178>`,
-                    inline: true
-                },
-                {
-                    name: "⚙️ Runtime",
-                    value: "`Node.js` • `Discord.js v14`",
-                    inline: true
-                },
-                {
-                    name: "🧬 System Architecture",
-                    value: "`interX Sovereign Core v2.1`",
-                    inline: true
-                },
-                {
-                    name: "🛡️ Security Protocol",
-                    value: "`Military Grade Anti-Nuke System`",
-                    inline: true
-                },
-                {
-                    name: "📡 System Latency",
-                    value: `\`${message.client.ws.ping}ms\``,
+                    name: "📡 Network Analytics",
+                    value: "```yaml\nStatus: Online & Secure\nDefense: Active\nLatency: " + message.client.ws.ping + "ms\n```",
                     inline: true
                 }
             )
-
             .setImage("https://media.discordapp.net/attachments/1462030670250381520/1467468087048667360/228552bb6bdd183da62941c007097034_2-1.gif?ex=69b5e268&is=69b490e8&hm=cc22146d176f1c2a49341d9c2e011fef48eac6faf61126c98818a75c3a7f6231&=")
-
             .setFooter({
-                text: "BlueSealPrime x interX • Red Protocol • System Authority",
+                text: "interX System Authority • Red Protocol",
                 iconURL: clientUser.displayAvatarURL()
             })
             .setTimestamp();
 
-        message.reply({ embeds: [embed] });
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setLabel("Integrate interX")
+                .setStyle(ButtonStyle.Link)
+                .setURL(`https://discord.com/api/oauth2/authorize?client_id=${clientUser.id}&permissions=8&scope=bot%20applications.commands`)
+        );
+
+        message.reply({ embeds: [embed], components: [row] });
     }
 };
