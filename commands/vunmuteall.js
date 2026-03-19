@@ -16,7 +16,7 @@ module.exports = {
         const channel = message.member.voice.channel;
         if (!channel) {
             const errorEmbed = new EmbedBuilder()
-                .setColor("#00FF00")
+                .setColor("#FF0000") // Red for errors
                 .setDescription("⚠️ **Voice Sync Error:** You must be connected to a voice channel to restore signals.");
             return message.reply({ embeds: [errorEmbed] });
         }
@@ -24,11 +24,11 @@ module.exports = {
         const members = channel.members.filter(m => !m.user.bot && m.voice.serverMute);
 
         if (members.size === 0) {
-            return message.reply({ embeds: [new EmbedBuilder().setColor("#00FF00").setDescription("⚠️ **Status:** No muted targets found for reactivation.")] });
+            return message.reply({ embeds: [new EmbedBuilder().setColor("#FF0000").setDescription("⚠️ **Status:** No muted targets found for reactivation.")] });
         }
 
         const statusEmbed = new EmbedBuilder()
-            .setColor("#00FF00")
+            .setColor("#FF0000") // Explicitly Red for interX theme
             .setAuthor({ name: "interX Sovereign Unmute", iconURL: message.client.user.displayAvatarURL() })
             .setTitle("🔊 [ RE-SYNCING_SIGNALS ]")
             .setDescription(`> **Target Channel:** ${channel.name}\n> **Payload:** \`${members.size}\` Members\n\n*Restoring carrier frequency...*`)
@@ -44,7 +44,7 @@ module.exports = {
         await Promise.allSettled(unmuteTasks);
 
         const finalEmbed = new EmbedBuilder()
-            .setColor("#00FF00")
+            .setColor("#FF0000") // Redified for Consistency
             .setAuthor({ name: "interX Sovereign Control", iconURL: message.client.user.displayAvatarURL() })
             .setTitle("🔊 [ MASS_RECONNECT_SUCCESS ]")
             .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
