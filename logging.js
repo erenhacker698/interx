@@ -1,233 +1,215 @@
-const { EmbedBuilder, AuditLogEvent } = require("discord.js");
+const { EmbedBuilder, AuditLogEvent, Events } = require("discord.js");
+const path = require("path");
+const fs = require("fs");
 
 module.exports = (client) => {
 
-    // Read log channel from config.json automatically
-    const config = require("./config.json");
-    const LOG_CHANNEL_ID = config.logChannelId || config.logChannel;
-
-    // send log to guild's log channel
-    function log(guild, embed) {
-        const ch = guild.channels.cache.get(LOG_CHANNEL_ID);
-        if (ch) ch.send({ embeds: [embed] }).catch(() => { });
+    // Helper: Safely use the global logToChannel from index.js
+    async function safeLog(guild, type, payload) {
+        if (!guild) return;
+        if (global.logToChannel) {
+            return global.logToChannel(guild, type, payload);
+        } else {
+            // Local fallback logic if global isn't ready
+            const LOGS_DB = path.join(__dirname, "data/logs.json");
+            if (fs.existsSync(LOGS_DB)) {
+                try {
+                    const data = JSON.parse(fs.readFileSync(LOGS_DB, "utf8"));
+                    const gid = guild.id;
+                    const cid = data[gid]?.[type] || data[gid]?.["server"];
+                    if (cid) {
+                        const channel = await guild.channels.fetch(cid).catch(() => null);
+                        if (channel) channel.send({ embeds: [payload.data || payload] }).catch(() => {});
+                    }
+                } catch (e) {}
+            }
+        }
     }
 
-    // format time as Discord timestamp
-    function time() {
-        return `<t:${Math.floor(Date.now() / 1000)}:F>`;
-    }
-
-    // ================= 🗑️ MESSAGE DELETE =================
-    client.on("messageDelete", async (msg) => {
-        if (!msg.guild || msg.author?.bot) return;
-
-        let executor = "Unknown";
-
-        try {
-            const audit = await msg.guild.fetchAuditLogs({
-                type: AuditLogEvent.MessageDelete,
-                limit: 1
-            });
-            const entry = audit.entries.first();
-            if (entry) executor = `${entry.executor.tag} (${entry.executor.id})`;
-        } catch { }
-
-        const embed = new EmbedBuilder()
-            .setColor("#8B0000")
-            .setTitle("🗑️ Message Deleted")
-            .addFields(
-                { name: "User", value: `${msg.author.tag} (${msg.author.id})` },
-                { name: "Deleted By", value: executor },
-                { name: "Channel", value: `${msg.channel}` },
-                { name: "Content", value: (msg.content || "No text").slice(0, 1024) },
-                { name: "Time", value: time() }
-            );
-
-        if (msg.attachments.size > 0) {
-            embed.addFields({ name: "Attachments", value: msg.attachments.map(a => a.url).join("\n").slice(0, 1024) });
-        }
-
-        log(msg.guild, embed);
-    });
-
-    // ================= ✏️ MESSAGE EDIT =================
-    client.on("messageUpdate", (oldMsg, newMsg) => {
-        if (!oldMsg.guild || oldMsg.author?.bot) return;
-        if (oldMsg.content === newMsg.content) return;
-
-        const embed = new EmbedBuilder()
-            .setColor("#8B0000")
-            .setTitle("✏️ Message Edited")
-            .addFields(
-                { name: "User", value: `${oldMsg.author.tag} (${oldMsg.author.id})` },
-                { name: "Before", value: (oldMsg.content || "None").slice(0, 1024) },
-                { name: "After", value: (newMsg.content || "None").slice(0, 1024) },
-                { name: "Time", value: time() }
-            );
-
-        log(oldMsg.guild, embed);
-    });
-
-    // ================= 👤 MEMBER JOIN =================
-    client.on("guildMemberAdd", (member) => {
-        const embed = new EmbedBuilder()
-            .setColor("#8B0000")
-            .setTitle("➕ Member Joined")
-            .setDescription(`${member.user.tag} (${member.id})`)
-            .addFields({ name: "Time", value: time() });
-
-        log(member.guild, embed);
-    });
-
-    // ================= ➖ MEMBER LEAVE =================
-    client.on("guildMemberRemove", (member) => {
-        const embed = new EmbedBuilder()
-            .setColor("#8B0000")
-            .setTitle("➖ Member Left")
-            .setDescription(`${member.user.tag} (${member.id})`)
-            .addFields({ name: "Time", value: time() });
-
-        log(member.guild, embed);
-    });
-
-    // ================= 👤 ROLE UPDATE (member) =================
-    client.on("guildMemberUpdate", (oldM, newM) => {
-        const oldRoles = oldM.roles.cache.map(r => r.id);
-        const newRoles = newM.roles.cache.map(r => r.id);
-
-        const added = newRoles.filter(r => !oldRoles.includes(r));
-        const removed = oldRoles.filter(r => !newRoles.includes(r));
-
-        if (!added.length && !removed.length) return;
-
-        const embed = new EmbedBuilder()
-            .setColor("#ec0c0cff")
-            .setTitle("👤 Role Update")
-            .setDescription(`${newM.user.tag} (${newM.id})`)
-            .addFields(
-                { name: "Added", value: added.map(id => `<@&${id}>`).join(", ") || "None" },
-                { name: "Removed", value: removed.map(id => `<@&${id}>`).join(", ") || "None" },
-                { name: "Time", value: time() }
-            );
-
-        log(newM.guild, embed);
-    });
-
-    // ================= 📁 CHANNEL CREATE =================
-    client.on("channelCreate", (ch) => {
-        const embed = new EmbedBuilder()
-            .setColor("#ff0000ff")
-            .setTitle("📁 Channel Created")
-            .setDescription(`${ch.name} (${ch.id})`)
-            .addFields({ name: "Time", value: time() });
-
-        log(ch.guild, embed);
-    });
-
-    // ================= 💣 CHANNEL DELETE =================
-    client.on("channelDelete", async (ch) => {
-        let executor = "Unknown";
-        try {
-            const audit = await ch.guild.fetchAuditLogs({
-                type: AuditLogEvent.ChannelDelete,
-                limit: 1
-            });
-            const entry = audit.entries.first();
-            if (entry) executor = `${entry.executor.tag} (${entry.executor.id})`;
-        } catch { }
-
-        const embed = new EmbedBuilder()
-            .setColor("#ff0101")
-            .setTitle("💣 Channel Deleted")
-            .addFields(
-                { name: "Channel", value: `${ch.name} (${ch.id})` },
-                { name: "Deleted By", value: executor },
-                { name: "Time", value: time() }
-            );
-
-        log(ch.guild, embed);
-    });
-
-    // ================= 🧨 ROLE DELETE =================
-    client.on("roleDelete", async (role) => {
-        let executor = "Unknown";
-        try {
-            const audit = await role.guild.fetchAuditLogs({
-                type: AuditLogEvent.RoleDelete,
-                limit: 1
-            });
-            const entry = audit.entries.first();
-            if (entry) executor = `${entry.executor.tag} (${entry.executor.id})`;
-        } catch { }
-
-        const embed = new EmbedBuilder()
-            .setColor("#ff1010ff")
-            .setTitle("🧨 Role Deleted")
-            .addFields(
-                { name: "Role", value: `${role.name} (${role.id})` },
-                { name: "Deleted By", value: executor },
-                { name: "Time", value: time() }
-            );
-
-        log(role.guild, embed);
-    });
-
-    // ================= 🔒 ROLE CREATE =================
-    client.on("roleCreate", (role) => {
-        const embed = new EmbedBuilder()
-            .setColor("#8B0000")
-            .setTitle("🔒 Role Created")
-            .setDescription(`${role.name} (${role.id})`)
-            .addFields({ name: "Time", value: time() });
-
-        log(role.guild, embed);
-    });
-
-    // ================= 🎤 VOICE ACTIVITY =================
-    client.on("voiceStateUpdate", (oldS, newS) => {
-        if (!newS.member) return;
-        const user = newS.member.user;
-
-        let action = null;
-
-        if (!oldS.channel && newS.channel) {
-            action = `🔊 Joined ${newS.channel}`;
-        } else if (oldS.channel && !newS.channel) {
-            action = `🔇 Left ${oldS.channel}`;
-        } else if (oldS.channel !== newS.channel) {
-            action = `🔁 Moved to ${newS.channel}`;
-        }
-
-        if (!action) return;
-
-        const embed = new EmbedBuilder()
-            .setColor("#8B0000")
-            .setTitle("🎤 Voice Activity")
-            .setDescription(`${user.tag} (${user.id})\n${action}`)
-            .addFields({ name: "Time", value: time() });
-
-        log(newS.guild, embed);
-    });
-
-    // ================= 🚨 ANTI-NUKE DETECT =================
-    client.on("channelDelete", async (ch) => {
-        const audit = await ch.guild.fetchAuditLogs({
-            type: AuditLogEvent.ChannelDelete,
-            limit: 1
-        });
-
-        const entry = audit.entries.first();
-        if (!entry) return;
-
-        const executor = entry.executor;
-
+    // ───── MESSAGE LOGS ─────
+    client.on(Events.MessageDelete, async (message) => {
+        if (!message.guild || message.author?.bot) return;
         const embed = new EmbedBuilder()
             .setColor("#FF0000")
-            .setTitle("🚨 POSSIBLE NUKE DETECTED")
-            .setDescription(`User: ${executor.tag} (${executor.id})`)
-            .addFields({ name: "Action", value: "Channel Delete Spam?" });
-
-        log(ch.guild, embed);
+            .setTitle("🗑️ Message Deleted")
+            .setDescription(`**Author:** ${message.author}\n**Channel:** ${message.channel}\n**Content:**\n\`\`\`\n${message.content || "None"}\n\`\`\``)
+            .setTimestamp();
+        safeLog(message.guild, "message", embed);
     });
 
+    client.on(Events.MessageUpdate, async (oldMessage, newMessage) => {
+        if (!oldMessage.guild || oldMessage.author?.bot || oldMessage.content === newMessage.content) return;
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("📝 Message Edited")
+            .setDescription(`**Author:** ${oldMessage.author}\n**Channel:** ${oldMessage.channel}`)
+            .addFields(
+                { name: "Before", value: `\`\`\`${oldMessage.content || "Empty"}\`\`\`` },
+                { name: "After", value: `\`\`\`${newMessage.content || "Empty"}\`\`\`` }
+            )
+            .setTimestamp();
+        safeLog(oldMessage.guild, "message", embed);
+    });
+
+    // ───── MEMBER LOGS ─────
+    client.on(Events.GuildMemberAdd, (member) => {
+        const embed = new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("➡️ Member Joined")
+            .setThumbnail(member.user.displayAvatarURL())
+            .setDescription(`**Member:** ${member.user} (\`${member.id}\`)\n**Created On:** <t:${Math.floor(member.user.createdTimestamp/1000)}:R>`)
+            .setTimestamp();
+        safeLog(member.guild, "joins", embed);
+    });
+
+    client.on(Events.GuildMemberRemove, (member) => {
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("⬅️ Member Left")
+            .setThumbnail(member.user.displayAvatarURL())
+            .setDescription(`**Member:** ${member.user.tag} (\`${member.id}\`)`)
+            .setTimestamp();
+        safeLog(member.guild, "leaves", embed);
+    });
+
+    client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
+        const guild = oldMember.guild;
+        // Role Update
+        const oldRoles = oldMember.roles.cache;
+        const newRoles = newMember.roles.cache;
+        if (oldRoles.size !== newRoles.size) {
+            const added = newRoles.filter(r => !oldRoles.has(r.id));
+            const removed = oldRoles.filter(r => !newRoles.has(r.id));
+            const embed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("👤 Role Modification")
+                .setDescription(`**Member:** ${newMember.user}`)
+                .addFields(
+                    { name: "Added", value: added.map(r => `${r}`).join(", ") || "None", inline: true },
+                    { name: "Removed", value: removed.map(r => `${r}`).join(", ") || "None", inline: true }
+                )
+                .setTimestamp();
+            safeLog(guild, "role", embed);
+        }
+        // Nickname
+        if (oldMember.nickname !== newMember.nickname) {
+            const embed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("🏷️ Nickname Update")
+                .setDescription(`**Member:** ${newMember.user}\n**Old:** ${oldMember.nickname || "None"}\n**New:** ${newMember.nickname || "None"}`)
+                .setTimestamp();
+            safeLog(guild, "member", embed);
+        }
+    });
+
+    // ───── MOD/ADMIN LOGS (Simplified) ─────
+    client.on(Events.GuildBanAdd, (ban) => {
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("🚫 Member Banned")
+            .setDescription(`**User:** ${ban.user.tag} (\`${ban.user.id}\`)\n**Reason:** ${ban.reason || "No reason provided"}`)
+            .setTimestamp();
+        safeLog(ban.guild, "ban", embed);
+    });
+
+    client.on(Events.GuildBanRemove, (ban) => {
+        const embed = new EmbedBuilder()
+            .setColor("#00FF00")
+            .setTitle("✅ Member Unbanned")
+            .setDescription(`**User:** ${ban.user.tag} (\`${ban.user.id}\`)`)
+            .setTimestamp();
+        safeLog(ban.guild, "ban", embed);
+    });
+
+    // ───── CHANNEL LOGS ─────
+    client.on(Events.ChannelCreate, (channel) => {
+        if (!channel.guild) return;
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("📁 Channel Created")
+            .setDescription(`**Name:** ${channel}\n**ID:** \`${channel.id}\``)
+            .setTimestamp();
+        safeLog(channel.guild, "channel", embed);
+    });
+
+    client.on(Events.ChannelDelete, (channel) => {
+        if (!channel.guild) return;
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("💣 Channel Deleted")
+            .setDescription(`**Name:** ${channel.name}\n**ID:** \`${channel.id}\``)
+            .setTimestamp();
+        safeLog(channel.guild, "channel", embed);
+    });
+
+    // ───── VOICE LOGS ─────
+    client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+        const member = newState.member;
+        if (!member) return;
+        if (!oldState.channelId && newState.channelId) {
+            const embed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("🔊 Voice Join")
+                .setDescription(`**Member:** ${member.user}\n**Channel:** ${newState.channel}`)
+                .setTimestamp();
+            safeLog(member.guild, "voice", embed);
+        } else if (oldState.channelId && !newState.channelId) {
+            const embed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("🔇 Voice Leave")
+                .setDescription(`**Member:** ${member.user}\n**Channel:** ${oldState.channel}`)
+                .setTimestamp();
+            safeLog(member.guild, "voice", embed);
+        } else if (oldState.channelId !== newState.channelId) {
+            const embed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("🔁 Voice Move")
+                .setDescription(`**Member:** ${member.user}\n**From:** ${oldState.channel}\n**To:** ${newState.channel}`)
+                .setTimestamp();
+            safeLog(member.guild, "voice", embed);
+        }
+    });
+
+    // ───── ROLE LOGS ─────
+    client.on(Events.GuildRoleCreate, (role) => {
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("🛡️ Role Created")
+            .setDescription(`**Name:** ${role.name}\n**ID:** \`${role.id}\``)
+            .setTimestamp();
+        safeLog(role.guild, "role", embed);
+    });
+
+    client.on(Events.GuildRoleDelete, (role) => {
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("🛡️ Role Deleted")
+            .setDescription(`**Name:** ${role.name}\n**ID:** \`${role.id}\``)
+            .setTimestamp();
+        safeLog(role.guild, "role", embed);
+    });
+
+    // ───── INVITE LOGS ─────
+    client.on(Events.InviteCreate, (invite) => {
+        const embed = new EmbedBuilder()
+            .setColor("#FF0000")
+            .setTitle("🎟️ Invite Created")
+            .setDescription(`**Code:** \`${invite.code}\`\n**Channel:** ${invite.channel}\n**Executor:** ${invite.invoker}`)
+            .setTimestamp();
+        safeLog(invite.guild, "invite", embed);
+    });
+
+    // ───── SERVER UPDATE ─────
+    client.on(Events.GuildUpdate, (oldGuild, newGuild) => {
+        if (oldGuild.name !== newGuild.name) {
+            const embed = new EmbedBuilder()
+                .setColor("#FF0000")
+                .setTitle("🏛️ Server Name Updated")
+                .setDescription(`**Old:** ${oldGuild.name}\n**New:** ${newGuild.name}`)
+                .setTimestamp();
+            safeLog(newGuild, "server", embed);
+        }
+    });
+
+    console.log("🔒 [Powered-Logger] Red Label Engine initialized.");
 };

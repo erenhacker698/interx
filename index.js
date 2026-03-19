@@ -3918,27 +3918,34 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 // ───── LOGGING EVENT HANDLER (MIGRATED TO CV2) ─────
 async function logToChannel(guild, type, payload) {
   if (!guild) return;
+  global.logToChannel = logToChannel; 
 
   const V2 = require("./utils/v2Utils");
   const V2_FLAG = V2.flag; // 32768
 
   // Accent colors per log type
   const TYPE_COLORS = {
-    security: "#000000",
-    antinuke: "#000000",
-    mod: "#000000",
-    member: "#000000",
-    message: "#000000",
-    file: "#000000",
-    action: "#000000",
-    admin: "#000000",
-    role: "#000000",
-    channel: "#000000",
-    voice: "#000000",
-    server: "#000000",
-    invite: "#2b2626",
-    ticket: "#000000",
-    verify: "#000000",
+    security: "#FF0000",
+    antinuke: "#FF3131",
+    mod: "#8B0000",
+    member: "#FF5757",
+    message: "#FF6666",
+    file: "#AA0000",
+    action: "#CC0000",
+    admin: "#FF0000",
+    role: "#EE0000",
+    channel: "#DD0000",
+    voice: "#BB0000",
+    server: "#FF1A1A",
+    invite: "#FF4444",
+    ticket: "#990000",
+    verify: "#FF2222",
+    whitelist: "#FF0000",
+    raid: "#FF0000",
+    spam: "#FF0000",
+    joins: "#00FF00", // Leaves some variation for join/leave if wanted, but user asked for RED
+    leaves: "#FF0000",
+    ban: "#FF0000",
   };
   const accentHex = TYPE_COLORS[type] || "#5865F2";
 
