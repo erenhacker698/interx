@@ -35,7 +35,7 @@ module.exports = {
                 ignore: { emoji: "🚫", cmds: ["blacklist"] },
                 ticket: { emoji: "🎟️", cmds: ["ticket"] },
                 sticky: { emoji: "📌", cmds: ["stick"] },
-                verification: { emoji: "⚡", cmds: ["setupverify"] },
+                verification: { emoji: "⚡", cmds: ["verify", "setupverify"] },
                 music: { emoji: "🎵", cmds: ["music", "play", "skip", "stop", "volume", "queue", "pause", "resume"] },
                 fun: { emoji: "🚀", cmds: ["mimic", "say", "embed", "show"] },
                 extra: { emoji: "💎", cmds: ["vanityroles", "counting", "j2c", "boost", "leveling", "encryption", "minecraft", "joindm", "birthday", "customrole"] }
@@ -133,7 +133,7 @@ module.exports = {
 
             collector.on('collect', async (i) => {
                 if (i.customId === 'help_delete') {
-                    return await i.message.delete().catch(() => {});
+                    return await i.message.delete().catch(() => { });
                 }
 
                 const selected = i.values?.[0];
@@ -174,7 +174,7 @@ module.exports = {
             });
 
             collector.on('end', () => {
-                response.edit({ components: [] }).catch(() => {});
+                response.edit({ components: [] }).catch(() => { });
             });
 
         } catch (error) {
