@@ -50,37 +50,27 @@ module.exports = {
                 })
                 .setThumbnail(client.user.displayAvatarURL({ dynamic: true, size: 512 }))
                 .setDescription(
-                    `## 🔴 interX Sovereign System\n` +
-                    `Premium Discord Security & Server Management\n\n` +
-                    `> **Prefix:** \`${PREFIX}\` **|** **Commands:** \`${client.commands?.size || "..."}\`\n` +
-                    `> **Architect:** ${author}\n\n` +
-                    `Select a module from the **dropdowns** below or use \`${PREFIX}help <command>\` for details.`
+                    `> **Prefix:** \`${PREFIX}\` ┃ **Commands:** \`${client.commands?.size || "..."}\` ┃ **User:** ${author}`
                 )
                 .addFields(
                     {
-                        name: "<:redDot:0> Core Modules ─────",
-                        value:
-                            "> 🛡️ **Antinuke** • 🔨 **Moderation**\n" +
-                            "> 🔧 **Utility** • ⚔️ **Security**\n" +
-                            "> 👤 **Autorole** • 🌐 **Server**\n" +
-                            "> 🔊 **Voice** • 📡 **Automod**\n" +
-                            "> 🌱 **Welcomer** • 🎟️ **Ticket**",
-                        inline: true
+                        name: "🛡️ Core",
+                        value: "`Antinuke` `Moderation` `Utility` `Security` `Autorole` `Server` `Voice` `Automod` `Welcomer` `Ticket`",
+                        inline: false
                     },
                     {
-                        name: "<:redDot:0> Extra Modules ─────",
-                        value:
-                            "> 📲 **Logging** • 🎵 **Music**\n" +
-                            "> 📌 **Sticky** • ⚡ **Verify**\n" +
-                            "> 🚀 **Fun** • 🚫 **Ignore**\n" +
-                            "> 💎 **Vanity** • 🏃 **Boost**\n" +
-                            "> 🔒 **Encryption** • ⚛️ **J2C**",
-                        inline: true
+                        name: "💎 Extra",
+                        value: "`Logging` `Music` `Sticky` `Verify` `Fun` `Ignore` `Vanity` `Boost` `Encryption` `J2C`",
+                        inline: false
+                    },
+                    {
+                        name: "\u200b",
+                        value: `Use \`${PREFIX}help <command>\` for details • Select a module below ↓`,
+                        inline: false
                     }
                 )
-                .setImage("https://media.discordapp.net/attachments/1093150036663308318/1113885934572900454/line-red.gif")
                 .setFooter({
-                    text: `interX Security • Page 1/${Object.keys(categories).length + 1}`,
+                    text: `interX Security • ${message.guild?.name || "DM"}`,
                     iconURL: author.displayAvatarURL({ dynamic: true })
                 })
                 .setTimestamp();
@@ -157,20 +147,22 @@ module.exports = {
                 if (!cat) return await i.update({ embeds: [homeEmbed], components });
 
                 const cmdList = cat.cmds;
-                const formatted = cmdList.map((c, i) => `\`${i + 1}.\` ${c}`).join("\n") || "No commands found.";
+                const formatted = cmdList.map(c => `\`${c}\``).join("  ") || "No commands found.";
 
                 const catEmbed = new EmbedBuilder()
                     .setColor("#df0000")
                     .setAuthor({
-                        name: `${client.user.username} • ${selected.charAt(0).toUpperCase() + selected.slice(1)} Module`,
+                        name: `${client.user.username} • ${selected.charAt(0).toUpperCase() + selected.slice(1)}`,
                         iconURL: client.user.displayAvatarURL({ dynamic: true })
                     })
-                    .setThumbnail(client.user.displayAvatarURL({ dynamic: true, size: 512 }))
-                    .setDescription(
-                        `## ${cat.emoji} ${selected.toUpperCase()} COMMANDS\n\n` +
-                        `${formatted}\n\n` +
-                        `> **Total:** \`${cmdList.length}\` commands **|** Use \`${PREFIX}help <command>\` for details`
+                    .addFields(
+                        {
+                            name: `${cat.emoji} ${selected.toUpperCase()} — ${cmdList.length} commands`,
+                            value: formatted,
+                            inline: false
+                        }
                     )
+                    .setDescription(`> Use \`${PREFIX}help <command>\` for details`)
                     .setImage("https://media.discordapp.net/attachments/1093150036663308318/1113885934572900454/line-red.gif")
                     .setFooter({
                         text: `interX Security • ${selected.charAt(0).toUpperCase() + selected.slice(1)} Module • ${cmdList.length} commands`,
