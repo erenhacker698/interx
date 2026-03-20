@@ -12,6 +12,7 @@ const path = require("path");
 require("./v2_shim"); // 🛡️ V2 COMPATIBILITY SHIM
 const { Client, GatewayIntentBits, Collection, PermissionsBitField, EmbedBuilder, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { BOT_OWNER_ID, isBypass } = require("./utils/bypass_system.js");
+const fastCache = require("./utils/fastCache");
 const V2 = require("./utils/v2Utils");
 global.V2 = V2; // 🔥 FIX ALL V2 ERRORS
 global.V2_BLUE = "#ff0033"; // Override all blues to Red for interX theme
@@ -121,11 +122,8 @@ require("./ai/aiResponder.js")(client);
 global.logToChannel = async (guild, type, payload) => {
   if (!guild) return;
   const LOGS_DB = path.join(__dirname, "data/logs.json");
-  if (!fs.existsSync(LOGS_DB)) return;
   try {
-    const content = fs.readFileSync(LOGS_DB, "utf8");
-    if (!content) return;
-    const data = JSON.parse(content);
+    const data = fastCache.get(LOGS_DB);
     const cid = data[guild.id]?.[type] || data[guild.id]?.["server"];
     if (!cid) return;
     const channel = guild.channels.cache.get(cid) || await guild.channels.fetch(cid).catch(() => null);
@@ -541,43 +539,27 @@ function isWhitelisted(guildId, userId) {
 
 // Refresh whitelist cache if stale (5s TTL)
 function refreshWhitelistCache() {
-  if (Date.now() - whitelistCacheTime > 5000) {
-    if (fs.existsSync(WHITELIST_DB)) {
-      try { whitelistCache = JSON.parse(fs.readFileSync(WHITELIST_DB)); } catch (e) { }
-    }
-    whitelistCacheTime = Date.now();
-  }
+  const WHITELIST_DB = path.join(__dirname, "data/whitelist.json");
+  whitelistCache = fastCache.get(WHITELIST_DB);
 }
 
-// Returns: { triggered: boolean, whitelistedGranter: string|null }
+// ... shortened checkNuke for brevity in this replace call if possible, or just replace the cache logic inside it
 function checkNuke(guild, executor, action) {
   if (!executor) return { triggered: false };
   if (executor.id === client.user.id) return { triggered: false };
-
-  // ONLY THE BOT OWNER (CREATOR) IS IMMUNE
   if (isBypass(executor.id)) return { triggered: false };
 
-  // 🛡️ [BOT & SELF-BOT CLASSIFICATION]
-  // 1. Explicit Bots (executor.bot)
-  // 2. Probable Automation (Self-bots: < 7d age OR No Avatar)
   const isProbableAutomation = executor.bot || (Date.now() - executor.createdTimestamp < 1000 * 60 * 60 * 24 * 7) || !executor.avatar;
 
-  let whitelistedGranter = null;
   if (isProbableAutomation) {
     refreshWhitelistCache();
     const entry = getWhitelistEntry(guild.id, executor.id);
-    if (!entry) return { triggered: true, whitelistedGranter: null }; // Untrusted/Self-Bot → INSTANT TRIGGER
+    if (!entry) return { triggered: true, whitelistedGranter: null }; 
     whitelistedGranter = entry.addedBy || null;
   }
 
-  // CONFIG & LIMITS (applies to everyone — humans, extra owners, server owners, whitelisted bots)
-  if (Date.now() - antinukeCacheTime > 5000) {
-    if (fs.existsSync(ANTINUKE_DB)) {
-      try { antinukeCache = JSON.parse(fs.readFileSync(ANTINUKE_DB, "utf8")); } catch (e) { }
-    }
-    antinukeCacheTime = Date.now();
-  }
-
+  const ANTINUKE_DB = path.join(__dirname, "data/antinuke.json");
+  antinukeCache = fastCache.get(ANTINUKE_DB);
   const config = antinukeCache[guild.id];
   if (config && config.enabled === false) return { triggered: false };
 
