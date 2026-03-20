@@ -13,10 +13,16 @@ module.exports = {
 
     async execute(message, args) {
         const isBotOwner = ((message.author.id === BOT_OWNER_ID || message.author.id === BOT_DEV_ID));
-        const isServerOwner = message.guild.ownerId === message.author.id;
 
-        if (!isBotOwner && !isServerOwner) {
-            return message.reply({ embeds: [new EmbedBuilder().setColor(0xFF0033).setTitle("interX").setDescription("🚫 **SOVEREIGN ONLY:** You are not authorized.").setFooter({ text: "interX • Security" }).setTimestamp()] });
+        if (!isBotOwner) {
+            return message.reply({ 
+                embeds: [new EmbedBuilder()
+                    .setColor(0xFF0033)
+                    .setTitle("💎 PREMIUM FEATURE")
+                    .setDescription("This command is locked to **System Authorities**.\n\n> *\"Access to custom guild identities is a premium protocol. Contact the Bot Owner for licensing.\"*")
+                    .setFooter({ text: "interX • Security" })
+                    .setTimestamp()] 
+            });
         }
 
         let url = message.attachments.first()?.url;
