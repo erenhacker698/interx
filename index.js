@@ -172,34 +172,9 @@ if (fs.existsSync(eventsDir)) {
   }
 }
 
-// ───── SLASH COMMAND INTERACTION HANDLER ─────
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+// ───── SLASH COMMAND INTERACTION HANDLER (REDUNDANT DELETED TO FIX CONFLICT) ─────
+// Unified handler is located at line 1687+ to ensure single response and security checks.
 
-  // 🛡️ NORMALIZE INTERACTION TO LOOK LIKE MESSAGE (Legacy Support)
-  const messageShim = new Proxy(interaction, {
-    get(target, prop) {
-      if (prop === 'author') return target.user;
-      if (prop === 'content') return `/${target.commandName}`; // Simplified
-      return target[prop];
-    }
-  });
-
-  // Extract arguments from slash options
-  const input = interaction.options.getString('input') || "";
-  const args = input.split(/\s+/).filter(a => a.length > 0);
-
-  try {
-    await command.execute(messageShim, args, client);
-  } catch (error) {
-    console.error(`❌ [CommandError] ${interaction.commandName}:`, error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: "❌ Error executing command.", ephemeral: true }).catch(() => { });
-    }
-  }
-});
 
 /* 🔴 LOAD AUTO BACKUP SYSTEM HERE */
 
@@ -869,8 +844,6 @@ client.once("ready", async () => {
   // ───── IMMEDIATE TASKS ─────
   const activities = [
     { name: "Server Security | 🛡️ Active", type: 3 },
-    { name: "Packet Traffic | 🟢 Stable", type: 3 },
-    { name: "for Intruders | 👁️ Scanning", type: 3 },
     { name: "interX Prime | 👑 Online", type: 0 }
   ];
 
