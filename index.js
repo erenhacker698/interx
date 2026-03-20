@@ -44,6 +44,12 @@ Message.prototype.reply = function (options) {
   return originalReply.call(this, patchOptions(options));
 };
 
+// ⚡ FIX: Patch Message.edit for V2 support
+const originalEdit = Message.prototype.edit;
+Message.prototype.edit = function (options) {
+  return originalEdit.call(this, patchOptions(options));
+};
+
 // Patch Channel types (send)
 [TextChannel, NewsChannel, ThreadChannel].forEach(cls => {
   if (!cls || !cls.prototype) return;
