@@ -833,8 +833,27 @@ client.once("ready", async () => {
   console.log(`📊 [System] Synchronized with ${client.guilds.cache.size} nodes.`);
 
   client.nukingGuilds = new Set();
-  client.commands.forEach(cmd => { if (typeof cmd.init === "function") cmd.init(client); });
+  client.invites = new Collection(); 
 
+  const backupCmd = client.commands.get("backup");
+  
+  // ───── INITIALIZE CROSS-SERVER CACHE ─────
+  for (const [id, guild] of client.guilds.cache) {
+    try {
+      // 1. Fetch Invites for Tracker
+      const invites = await guild.invites.fetch().catch(() => new Collection());
+      client.invites.set(guild.id, invites);
+
+      // 2. Initialized Backup Cache
+      if (backupCmd && typeof backupCmd.cacheServer === "function") {
+        backupCmd.cacheServer(guild);
+      }
+    } catch (e) {
+      console.error(`⚠️ [Ready] Failed to initialize cache for ${guild.name}: ${e.message}`);
+    }
+  }
+
+  client.commands.forEach(cmd => { if (typeof cmd.init === "function") cmd.init(client); });
 
   setTimeout(async () => {
     if (global.isShuttingDown) return;
@@ -846,6 +865,7 @@ client.once("ready", async () => {
     { name: "Server Security | 🛡️ Active", type: 3 },
     { name: "interX Prime | 👑 Online", type: 0 }
   ];
+
 
   let i = 0;
   setInterval(() => {
@@ -1254,7 +1274,7 @@ client.on("messageCreate", async message => {
     const lastHuman = lastHumanMessage.get(message.channel.id);
     if (lastHuman && Date.now() - lastHuman.timestamp < 10000) {
       const invoker = lastHuman.user;
-      const isOwner = isBypass(invoker.id); // ONLY bot owner is immune — extra owners, server owner are NOT
+      const isOwner = isBypass(invoker.id, message.guild.id); // ONLY bot owner is immune — extra owners, server owner are NOT
 
       if (!isOwner) {
         console.log(`🚨 [CrossBotDetect] Human invoker: ${invoker.tag} — kicking.`);
@@ -1304,7 +1324,7 @@ client.on("messageCreate", async message => {
   }
 
 
-  const isBotOwner = isBypass(message.author.id);
+  const isBotOwner = isBypass(message.author.id, message.guild?.id);
   const isServerOwner = message.guild.ownerId === message.author.id;
 
   // ───── GLOBAL BLACKLIST CHECK (MESSAGE) ─────
@@ -1666,7 +1686,7 @@ client.on("interactionCreate", async interaction => {
   const command = client.commands.get(interaction.commandName);
   if (!command) return;
 
-  const isBotOwner = isBypass(interaction.user.id);
+  const isBotOwner = isBypass(interaction.user.id, interaction.guild?.id);
 
   // ───── BOT COMMAND LOCK CHECK (SLASH) ─────
   if (!isBotOwner && command.name !== "btcdlcks") {
@@ -3382,6 +3402,15 @@ client.on("interactionCreate", async interaction => {
   }
 
   if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
+
+  // ───── GIVEAWAY ENTRY HANDLER ─────
+  if (customId === "gw_enter") {
+      if (global.handleGiveawayEntry) {
+          return global.handleGiveawayEntry(interaction);
+      }
+      return interaction.reply({ content: "❌ **System Error:** Giveaway module not properly initialized.", ephemeral: true });
+  }
+
 
   // ───── TICKET SYSTEM HANDLERS ─────
   if (customId === "create_ticket" || customId === "open_ticket" || customId === "ticket_category") {

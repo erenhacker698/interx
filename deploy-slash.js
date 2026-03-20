@@ -25,8 +25,10 @@ for (const filePath of allCommandFiles) {
 
     const file = path.basename(filePath);
     
-    // Skip God Mode and Extra Owner commands for slash commands
-    if (file.startsWith('god_') || file.startsWith('e') || file === 'eval.js' || file === 'exec.js') continue;
+    // Skip Internal and Dangerous Developer tools for global slash registration
+    const blacklist = ['eval.js', 'exec.js', 'god_system.js', 'test.js'];
+    if (blacklist.includes(file)) continue;
+
 
     try {
         const command = require(filePath);

@@ -24,7 +24,7 @@ module.exports = {
             const categories = {
                 antinuke: ["antinuke", "antiraid", "security", "setupsecurity", "whitelist", "authwipe", "createbaseline", "rebuild", "selfProtect"],
                 moderation: ["ban", "kick", "mute", "unmute", "timeout", "untimeout", "warn", "warnings", "clear", "purge", "jail", "left", "slowmode", "vckick", "vmute", "vunmute", "vmuteall", "vunmuteall", "vmoveall"],
-                utility: ["avatar", "banner", "botinfo", "devinfo", "serverinfo", "userinfo", "roleinfo", "stats", "serverstats", "invites", "invite-lb", "invitelogger", "ping", "suggest", "poll", "qr", "audit"],
+                utility: ["avatar", "banner", "botinfo", "devinfo", "serverinfo", "userinfo", "roleinfo", "stats", "serverstats", "invites", "invite-lb", "invitelogger", "ping", "suggest", "poll", "qr", "audit", "giveaway"],
                 security: ["serverlock", "serverunlock", "lock", "unlock", "lockvc", "unlockvc", "hide", "show", "chperm", "roleperm", "btcdlcks", "btcmdlocks", "threatscan"],
                 autorole: ["autorole", "addrole", "removerole", "temprole", "reactionrole", "massrole", "testroles"],
                 server: ["createch", "deletech", "renamech", "createrole", "deleterole", "rolecopy", "setguildavatar", "setguildbanner", "setup", "backup", "restore", "panic", "deepclean"],
@@ -37,7 +37,7 @@ module.exports = {
                 sticky: ["stick"],
                 verification: ["verify", "setupverify"],
                 music: ["music", "play", "skip", "stop", "volume", "queue", "pause", "resume"],
-                fun: ["mimic", "say", "embed", "show"],
+                fun: ["mydog", "chat", "translate", "howgay", "lesbian", "cute", "intelligence", "chutiya", "horny", "tharki", "gif", "iplookup", "weather", "hug", "kiss", "pat", "cuddle", "slap", "tickle", "spank", "ngif", "8ball", "truth", "dare", "blackjack", "chess", "tic-tac-toe", "country-guesser", "rps", "lights-out", "wordle", "2048", "memory-game", "number-slider", "battleship", "connect-four"],
                 extra: ["vanityroles", "counting", "j2c", "boost", "leveling", "encryption", "minecraft", "joindm", "birthday", "customrole"]
             };
 
