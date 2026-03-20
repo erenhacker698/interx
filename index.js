@@ -111,7 +111,6 @@ const client = new Client({
 const bot = client; // Global bot pattern for performance
 require("./events/securityAlert")(client);
 require("./events/nukeTrap")(client);
-require("./events/ghostLogger")(client);
 require("./logging")(client); // 📋 Extended Logging System
 const PROTECTED_ROLES = ["interX!", "interX! anti nuke", "interX! unbypassable", "interX! secure", "interX! anti-raid"];
 
