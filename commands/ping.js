@@ -19,23 +19,30 @@ module.exports = {
     });
 
     const roundTrip = Date.now() - startTime;
-    const botPing = roundTrip - apiPing; 
+    const botPingRaw = roundTrip - apiPing;
+    const botPingValidated = isNaN(botPingRaw) ? 0 : botPingRaw; 
     
     // Smooth coloring
     const status = apiPing < 50 ? "🟢 EXCELLENT" : apiPing < 150 ? "🟡 STABLE" : "🔴 DEGRADED";
 
-    msg.edit({
-      components: [
-        V2.container([
-          V2.section([
-            V2.heading("System Diagnostic: Latency Report", 3),
-            `> **API Latency:** \`${apiPing}ms\`\n` +
-            `> **Bot Response:** \`${roundTrip}ms\`\n` +
-            `> **Node Process:** \`${botPing < 0 ? 0 : botPing}ms\`\n\n` +
-            `**Status:** ${status}`
+    // Wait 500ms to ensure the first message is fully processed by the client
+    setTimeout(async () => {
+      // Explicitly wrap the message object just in case the global patch didn't catch it
+      const wrappedMsg = V2.wrapSentMessage(msg);
+      
+      wrappedMsg.edit({
+        components: [
+          V2.container([
+            V2.section([
+              V2.heading("System Diagnostic: Latency Report", 3),
+              `> **API Latency:** \`${apiPing || 0}ms\`\n` +
+              `> **Bot Response:** \`${roundTrip}ms\`\n` +
+              `> **Node Process:** \`${botPingValidated < 0 ? 0 : botPingValidated}ms\`\n\n` +
+              `**Status:** ${status}`
+            ])
           ])
-        ])
-      ]
-    });
+        ]
+      }).catch(e => console.error("EditError:", e));
+    }, 500);
   }
 };
