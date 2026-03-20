@@ -27,7 +27,7 @@ module.exports = {
                 utility: ["avatar", "banner", "botinfo", "devinfo", "serverinfo", "userinfo", "roleinfo", "stats", "serverstats", "invites", "invite-lb", "invitelogger", "ping", "suggest", "poll", "qr", "audit"],
                 security: ["serverlock", "serverunlock", "lock", "unlock", "lockvc", "unlockvc", "hide", "show", "chperm", "roleperm", "btcdlcks", "btcmdlocks"],
                 autorole: ["autorole", "addrole", "removerole", "temprole", "reactionrole", "massrole", "testroles"],
-                server: ["createch", "deletech", "renamech", "createrole", "deleterole", "rolecopy", "setguildavatar", "setguildbanner", "setup", "backup", "restore", "panic"],
+                server: ["createch", "deletech", "renamech", "createrole", "deleterole", "rolecopy", "setguildavatar", "setguildbanner", "setup", "backup", "restore", "panic", "deepclean"],
                 voice: ["createvc", "deletevc", "renamevc", "locksound", "unlocksound", "vdefend", "vundefend", "setupvtc", "sethomevc", "muv", "muvu"],
                 logging: ["log", "logsetup", "elog", "ghostLogger"],
                 welcomer: ["welcome"],
