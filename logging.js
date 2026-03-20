@@ -184,13 +184,109 @@ module.exports = (client) => {
         safeLog(invite.guild, "invite", embed);
     });
 
+    // ───── WEBHOOK LOGS ─────
+    client.on(Events.WebhooksUpdate, async (channel) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("⚓ Webhooks Updated")
+            .setDescription(`Webhooks were modified in channel: ${channel}`)
+            .setTimestamp();
+        safeLog(channel.guild, "webhook", embed);
+    });
+
+    // ───── EMOJI & STICKER LOGS ─────
+    client.on(Events.GuildEmojiCreate, (emoji) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("😀 Emoji Created")
+            .setDescription(`**Emoji:** ${emoji} (\`${emoji.name}\`)\n**ID:** \`${emoji.id}\``)
+            .setTimestamp();
+        safeLog(emoji.guild, "emoji", embed);
+    });
+
+    client.on(Events.GuildEmojiDelete, (emoji) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("🗑️ Emoji Deleted")
+            .setDescription(`**Name:** \`${emoji.name}\`\n**ID:** \`${emoji.id}\``)
+            .setTimestamp();
+        safeLog(emoji.guild, "emoji", embed);
+    });
+
+    client.on(Events.GuildStickerCreate, (sticker) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("🖼️ Sticker Created")
+            .setDescription(`**Name:** ${sticker.name}\n**ID:** \`${sticker.id}\``)
+            .setThumbnail(sticker.url)
+            .setTimestamp();
+        safeLog(sticker.guild, "sticker", embed);
+    });
+
+    client.on(Events.GuildStickerDelete, (sticker) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("🗑️ Sticker Deleted")
+            .setDescription(`**Name:** ${sticker.name}\n**ID:** \`${sticker.id}\``)
+            .setTimestamp();
+        safeLog(sticker.guild, "sticker", embed);
+    });
+
+    // ───── THREAD LOGS ─────
+    client.on(Events.ThreadCreate, (thread) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("🧵 Thread Created")
+            .setDescription(`**Name:** ${thread.name}\n**Parent:** ${thread.parent}\n**ID:** \`${thread.id}\``)
+            .setTimestamp();
+        safeLog(thread.guild, "thread", embed);
+    });
+
+    client.on(Events.ThreadDelete, (thread) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("🗑️ Thread Deleted")
+            .setDescription(`**Name:** ${thread.name}\n**ID:** \`${thread.id}\``)
+            .setTimestamp();
+        safeLog(thread.guild, "thread", embed);
+    });
+
+    // ───── BOOST LOGS ─────
+    client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
+        if (!oldMember.premiumSince && newMember.premiumSince) {
+            const embed = new EmbedBuilder()
+                .setColor("#f47fff") // Boost Pink
+                .setTitle("🚀 Server Boosted!")
+                .setDescription(`**Member:** ${newMember.user}\n**Total Boosts:** \`${newMember.guild.premiumSubscriptionCount}\``)
+                .setThumbnail(newMember.user.displayAvatarURL())
+                .setTimestamp();
+            safeLog(newMember.guild, "boost", embed);
+        }
+    });
+
+    // ───── AUTOMOD LOGS ─────
+    client.on(Events.AutoModerationActionExecution, (execution) => {
+        const embed = new EmbedBuilder()
+            .setColor("#df0000")
+            .setTitle("🛡️ AutoMod Action")
+            .setDescription(`**User:** <@${execution.userId}>\n**Action:** \`${execution.action.type}\`\n**Rule:** \`${execution.ruleId}\`\n**Channel:** <#${execution.channelId}>`)
+            .setTimestamp();
+        safeLog(execution.guild, "automod", embed);
+    });
+
     // ───── SERVER UPDATE ─────
     client.on(Events.GuildUpdate, (oldGuild, newGuild) => {
-        if (oldGuild.name !== newGuild.name) {
+        let changes = [];
+        if (oldGuild.name !== newGuild.name) changes.push(`**Name:** \`${oldGuild.name}\` ➔ \`${newGuild.name}\``);
+        if (oldGuild.icon !== newGuild.icon) changes.push(`**Icon:** Updated`);
+        if (oldGuild.banner !== newGuild.banner) changes.push(`**Banner:** Updated`);
+        if (oldGuild.discoverySplash !== newGuild.discoverySplash) changes.push(`**Discovery Splash:** Updated`);
+        
+        if (changes.length > 0) {
             const embed = new EmbedBuilder()
                 .setColor("#df0000")
-                .setTitle("🏛️ Server Name Updated")
-                .setDescription(`**Old:** ${oldGuild.name}\n**New:** ${newGuild.name}`)
+                .setTitle("🏛️ Server Configuration Updated")
+                .setDescription(changes.join("\n"))
                 .setTimestamp();
             safeLog(newGuild, "server", embed);
         }

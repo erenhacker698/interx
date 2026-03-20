@@ -1,6 +1,7 @@
 const { EmbedBuilder, ChannelType, PermissionsBitField } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
+const fastCache = require("../utils/fastCache");
 
 module.exports = {
     name: "logsetup",
@@ -37,31 +38,29 @@ module.exports = {
             member: "member logs",
             channel: "channel logs",
             invite: "invite logs",
-            antinuke: "antinuke-logs",
+            antinuke: "antinuke logs",
             ban: "ban logs",
             action: "action logs",
-            admin: "admin logs"
+            admin: "admin logs",
+            webhook: "webhook logs",
+            emoji: "emoji logs",
+            sticker: "sticker logs",
+            boost: "boost logs",
+            automod: "automod logs",
+            thread: "thread logs",
+            audit: "audit logs",
+            verification: "verification logs",
+            backup: "backup logs",
+            incident: "incident logs"
         };
 
         const LOGS_DB = path.join(__dirname, "../data/logs.json");
-        const dataDir = path.join(__dirname, "../data");
-        if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-        let allLogs = {};
-        if (fs.existsSync(LOGS_DB)) {
-            try {
-                const content = fs.readFileSync(LOGS_DB, "utf8");
-                allLogs = content ? JSON.parse(content) : {};
-            } catch (e) {
-                console.error("[logsetup] Failed to parse logs.json:", e);
-                allLogs = {};
-            }
-        }
+        const allLogs = fastCache.get(LOGS_DB) || {};
         if (!allLogs[guild.id]) allLogs[guild.id] = {};
 
         const results = [];
         // Ensure we have current channels in cache
-        await guild.channels.fetch().catch(() => {});
+        await guild.channels.fetch().catch(() => { });
 
         for (const [key, name] of Object.entries(logChannelsMap)) {
             let ch = guild.channels.cache.find(c => c.name === name && c.parentId === category.id);
@@ -69,7 +68,8 @@ module.exports = {
                 ch = await guild.channels.create({
                     name: name,
                     type: ChannelType.GuildText,
-                    parent: category.id
+                    parent: category.id,
+                    topic: `interX ${name.toUpperCase()} channel. Powered by Red-Label Engine.`
                 }).catch(() => null);
             }
             if (ch) {
@@ -78,12 +78,8 @@ module.exports = {
             }
         }
 
-        try {
-            fs.writeFileSync(LOGS_DB, JSON.stringify(allLogs, null, 2));
-        } catch (err) {
-            console.error("[logsetup] Failed to write logs.json:", err);
-            return msg.edit("❌ **DATABASE ERROR:** Failed to save log configuration.");
-        }
+        // ⚡ CRITICAL FIX: Use fastCache.set to ensure memory bridge sync
+        fastCache.set(LOGS_DB, allLogs);
 
         const embed = new EmbedBuilder()
             .setColor("#FF0000")
@@ -99,3 +95,4 @@ module.exports = {
         return msg.edit({ content: null, embeds: [embed] });
     }
 };
+

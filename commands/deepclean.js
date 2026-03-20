@@ -5,8 +5,9 @@ module.exports = {
   name: "deepclean",
   description: "☢️ DEEP SERVER CLEAN (Annihilates Channels, Roles, Emojis, etc.)",
   aliases: ["dclean", "wipeall"],
+  usage: "!deepclean",
   permissions: [PermissionsBitField.Flags.Administrator],
-  ownerOnly: true,
+  whitelistOnly: true,
 
   async execute(message, args) {
     // 1. Ownership & Permission Check
@@ -125,7 +126,7 @@ module.exports = {
                 `> **Status:** Pristine\n` +
                 `> **Timestamp:** <t:${Math.floor(Date.now() / 1000)}:F>`
               )
-            ], client.user.displayAvatarURL())
+            ], V2.botAvatar(message))
           ]);
 
           await finalChannel.send({ components: [finalContainer] });

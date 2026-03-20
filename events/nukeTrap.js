@@ -2,14 +2,12 @@ const { AuditLogEvent, EmbedBuilder, PermissionsBitField } = require("discord.js
 
 module.exports = (client) => {
 
-const LOG_CHANNEL_ID = "PASTE_CHANNEL_ID";
-
-// track actions
 const deleteTracker = new Map();
 
 function log(guild, embed) {
-    const ch = guild.channels.cache.get(LOG_CHANNEL_ID);
-    if (ch) ch.send({ embeds: [embed] }).catch(() => {});
+    if (global.logToChannel) {
+        global.logToChannel(guild, "incident", embed);
+    }
 }
 
 // 💣 CHANNEL DELETE DETECT
