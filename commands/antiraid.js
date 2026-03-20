@@ -2,28 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const { EmbedBuilder, PermissionsBitField } = require("discord.js");
 const { BOT_OWNER_ID, BOT_DEV_ID, SUCCESS_COLOR, ERROR_COLOR, WARN_COLOR } = require("../config");
+const { isBypass } = require("../utils/bypass_system.js");
+const fastCache = require("../utils/fastCache");
 
 const DATA_DIR = path.join(__dirname, "../data");
 const DB_PATH = path.join(DATA_DIR, "antiraid.json");
 
 // ───── DATA MANAGEMENT ─────
-function loadAntiRaidData() {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    if (!fs.existsSync(DB_PATH)) {
-        fs.writeFileSync(DB_PATH, JSON.stringify({}, null, 2));
-        return {};
-    }
-    try {
-        return JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
-    } catch {
-        return {};
-    }
-}
-
-function saveAntiRaidData(data) {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-}
+// Migrated to fastCache for performance.
 
 module.exports = {
     name: "antiraid",

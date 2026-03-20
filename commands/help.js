@@ -6,10 +6,11 @@ const {
     ButtonBuilder,
     ButtonStyle
 } = require("discord.js");
+const V2 = require("../utils/v2Utils");
 
 module.exports = {
     name: "help",
-    description: "Construct the interX help interface.",
+    description: "Construct the interX Sovereign Control Panel.",
     aliases: ["h", "commands"],
 
     async execute(message, args) {
@@ -20,6 +21,7 @@ module.exports = {
 
             const isInteraction = !!message.options;
             const PREFIX = "!"; 
+            const THEME_RED = "#df0000";
 
             // ───── CATEGORY MAPPING ─────
             const categories = {
@@ -42,54 +44,42 @@ module.exports = {
                 extra: ["vanityroles", "counting", "j2c", "boost", "leveling", "encryption", "minecraft", "joindm", "birthday", "customrole"]
             };
 
-            const homeEmbed = new EmbedBuilder()
-                .setColor("#FF0000")
-                .setAuthor({ 
-                    name: `Architect: ${author.username}`, 
-                    iconURL: author.displayAvatarURL({ dynamic: true }) || undefined 
-                })
-                .setThumbnail(client.user?.displayAvatarURL({ dynamic: true, size: 512 }) || undefined)
-                .setTitle(`interX Sovereign System`)
-                .setDescription(
-                    `**Elevate Your Discord Experience With interX Best Quality\nSecurity & Versatility !**\n\n` +
-                    `**Prefix:** \`${PREFIX}\`\n` +
-                    `**Total Commands:** \`${client.commands?.size || "..."}\`\n\n` +
-                    `**Use \`${PREFIX}help <command>\` for details**\n\n` +
-                    `**Choose A Specific Module Of Your Own Desire !**`
-                )
-                .addFields(
-                    { 
-                        name: "☁️ MAIN FEATURES", 
-                        value: 
-                            "> 🛡️ » **Antinuke**\n> 🤖 » **Moderation**\n> 🔧 » **Utility**\n> 📡 » **Autoreact**\n> ⚔️ » **Security**\n" +
-                            "> 👤 » **Autorole**\n> 🚀 » **Fun**\n> 🎮 » **Games**\n> 🚫 » **Ignore**\n" +
-                            "> 🌐 » **Server**\n> 🔊 » **Voice**\n> 🌱 » **Welcomer**\n> 🎉 » **Giveaway**\n" +
-                            "> 🎟️ » **Ticket**\n> 👥 » **Invite**",
-                        inline: true 
-                    },
-                    { 
-                        name: "📂 EXTRA FEATURES", 
-                        value: 
-                            "> 📲 » **Logging**\n> ⭐ » **Vanityroles**\n> ➕ » **Counting**\n> ⚛️ » **J2C**\n" +
-                            "> 💎 » **Boost**\n> 🏃 » **Leveling**\n> 📌 » **Sticky**\n> ⚡ » **Verification**\n" +
-                            "> 🔒 » **Encryption**\n> ⛩️ » **Minecraft**\n> 💬 » **Joindm**\n> 🎯 » **Birthday**\n" +
-                            "> 🚩 » **Customrole**",
-                        inline: true 
-                    }
-                )
-                .setFooter({ 
-                    text: `Page 1/27 • Requested by: ${author.tag}`, 
-                    iconURL: client.user?.displayAvatarURL() || undefined 
-                })
-                .setTimestamp();
+            const homeEmbed = V2.container([
+                V2.section([
+                    V2.heading("SOVEREIGN CONTROL PANEL", 1),
+                    V2.text(
+                        `### **SYSTEM_STATUS: 🟢 ACTIVE**\n` +
+                        `> **Architect:** ${author.username}\n` +
+                        `> **Registry:** \`${client.commands?.size || "..."}\` commands available\n\n` +
+                        `**Initialize your node by selecting a sector below. interX provides premium security and versatility protocols.**`
+                    )
+                ], client.user?.displayAvatarURL({ dynamic: true, size: 512 })),
+                V2.separator(),
+                V2.section([
+                    V2.heading("PRIMARY INFRASTRUCTURE", 2),
+                    V2.text(
+                        "> 🛡️ » **Antinuke**\n> 🤖 » **Moderation**\n> 🔧 » **Utility**\n> 📡 » **Autoreact**\n> ⚔️ » **Security**\n" +
+                        "> 👤 » **Autorole**\n> 🌐 » **Server**\n> 🔊 » **Voice**\n> 🌱 » **Welcomer**"
+                    )
+                ]),
+                V2.section([
+                    V2.heading("AUXILIARY MODULES", 3),
+                    V2.text(
+                        "> 📲 » **Logging**\n> ⭐ » **Vanity**\n> ⚛️ » **J2C**\n" +
+                        "> 💎 » **Boost**\n> 🏃 » **Leveling**\n> 📌 » **Sticky**\n" +
+                        "> ⚡ » **Verify**\n> 🔒 » **Encryption**\n> 🎟️ » **Ticket**"
+                    )
+                ]),
+                `*interX Sovereign System • Ultimate UI Protocol*`
+            ], THEME_RED);
 
             const mainSelector = new StringSelectMenuBuilder()
                 .setCustomId('main_features')
-                .setPlaceholder('MAIN FEATURES')
+                .setPlaceholder('💠 INITIALIZE MAIN SECTORS')
                 .addOptions(
-                    { label: 'Home', value: 'home', emoji: '🏠', description: 'Return to console' },
+                    { label: 'Return Home', value: 'home', emoji: '🏠', description: 'Access main control center' },
                     { label: 'Antinuke', value: 'antinuke', emoji: '🛡️', description: 'Antinuke security protocols' },
-                    { label: 'Moderation', value: 'moderation', emoji: '🤖', description: 'Admin management tools' },
+                    { label: 'Moderation', value: 'moderation', emoji: '🤖', description: 'Administrative management tools' },
                     { label: 'Utility', value: 'utility', emoji: '🔧', description: 'System information & tools' },
                     { label: 'Security', value: 'security', emoji: '⚔️', description: 'Channel & server locking' },
                     { label: 'Autorole', value: 'autorole', emoji: '👤', description: 'Role assignment automation' },
@@ -102,7 +92,7 @@ module.exports = {
 
             const extraSelector = new StringSelectMenuBuilder()
                 .setCustomId('extra_features')
-                .setPlaceholder('EXTRA FEATURES')
+                .setPlaceholder('🚀 INITIALIZE AUXILIARY SECTORS')
                 .addOptions(
                     { label: 'Logging', value: 'logging', emoji: '📲', description: 'Audit trail management' },
                     { label: 'Ignore', value: 'ignore', emoji: '🚫', description: 'Blacklist management' },
@@ -113,11 +103,9 @@ module.exports = {
                 );
 
             const buttons = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('first').setEmoji('⏪').setStyle(ButtonStyle.Secondary).setDisabled(true),
-                new ButtonBuilder().setCustomId('back').setEmoji('◀️').setStyle(ButtonStyle.Secondary).setDisabled(true),
                 new ButtonBuilder().setCustomId('delete').setEmoji('🗑️').setStyle(ButtonStyle.Danger),
-                new ButtonBuilder().setCustomId('next').setEmoji('▶️').setStyle(ButtonStyle.Secondary).setDisabled(true),
-                new ButtonBuilder().setCustomId('last').setEmoji('⏩').setStyle(ButtonStyle.Secondary).setDisabled(true)
+                new ButtonBuilder().setLabel('Support').setURL("https://discord.gg/interx").setStyle(ButtonStyle.Link),
+                new ButtonBuilder().setLabel('Invite').setURL(`https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot%20applications.commands`).setStyle(ButtonStyle.Link)
             );
 
             const row1 = new ActionRowBuilder().addComponents(mainSelector);
@@ -127,9 +115,9 @@ module.exports = {
             let response;
             
             if (isInteraction) {
-                response = await message.reply({ embeds: [homeEmbed], components: components, fetchReply: true });
+                response = await message.reply({ components: [homeEmbed, ...components], fetchReply: true });
             } else {
-                response = await message.reply({ embeds: [homeEmbed], components: components });
+                response = await message.reply({ components: [homeEmbed, ...components] });
             }
 
             const collector = response.createMessageComponentCollector({
@@ -144,19 +132,21 @@ module.exports = {
                 
                 const selected = i.values[0];
                 if (selected === 'home') {
-                    return await i.update({ embeds: [homeEmbed] });
+                    return await i.update({ components: [homeEmbed, ...components] });
                 }
 
                 const cmdList = categories[selected] || [];
-                const formattedCmds = cmdList.map(c => `\`${c}\``).join(", ") || "No modules detected in this node.";
+                const formattedCmds = cmdList.map(c => `\`${c}\``).join(", ") || "No modules detected in this sector.";
 
-                const categoryEmbed = new EmbedBuilder()
-                    .setColor("#FF0000")
-                    .setTitle(`🛡️ [ ${selected.toUpperCase()} PROTOCOLS ]`)
-                    .setDescription(`**Operational components for the ${selected} infrastructure are listed below.**\n\n${formattedCmds}\n\n> *Use \`${PREFIX}help <command>\` for deep-scan details.*`)
-                    .setFooter({ text: `interX Security • Protocol: ${selected} | Commands: ${cmdList.length}` });
+                const categoryEmbed = V2.container([
+                    V2.section([
+                        V2.heading(`${selected} Protocols`, 1),
+                        V2.text(`### **Operational components for the ${selected} infrastructure are listed below.**\n\n${formattedCmds}\n\n> *Use \`${PREFIX}help <command>\` for deep-scan details.*`)
+                    ]),
+                    `*interX Security • Command Count: ${cmdList.length}*`
+                ], THEME_RED);
 
-                await i.update({ embeds: [categoryEmbed] });
+                await i.update({ components: [categoryEmbed, ...components] });
             });
 
             collector.on('end', () => {
