@@ -2784,54 +2784,73 @@ client.on("emojiDelete", async emoji => {
 
 
 // ───── ANTI-RAID SYSTEM (JOINS) ─────
-const raidMap = new Map(); // { guildId: [timestamps] }
+const raidMap = new Map(); // { guildId: [ {id, timestamp} ] }
 
 client.on("guildMemberAdd", async member => {
   const ANTIRAID_DB = path.join(__dirname, "data/antiraid.json");
-  if (!fs.existsSync(ANTIRAID_DB)) return;
-
-  let config = {};
-  try { config = JSON.parse(fs.readFileSync(ANTIRAID_DB, "utf8"))[member.guild.id]; } catch (e) { }
+  const configFull = fastCache.get(ANTIRAID_DB);
+  const config = configFull ? configFull[member.guild.id] : null;
 
   if (!config || !config.enabled) return;
 
-  // Track Join
+  // 🛡️ PRE-DETECTION CHECK (Verification)
+  // 1. Account Age Check
+  const accountAge = (Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24);
+  const isSuspiciousAge = config.minAge && accountAge < config.minAge;
+
+  // 2. Avatar Check
+  const hasNoAvatar = config.avatarRequired && !member.user.avatar;
+
+  // Track Join with Metadata
   const now = Date.now();
-  const joins = raidMap.get(member.guild.id) || [];
-  joins.push(now);
+  let joins = raidMap.get(member.guild.id) || [];
+  joins.push({ id: member.id, t: now });
 
   // Filter joins within window
-  const recentJoins = joins.filter(t => now - t < (config.timeWindow * 1000));
-  raidMap.set(member.guild.id, recentJoins);
+  joins = joins.filter(entry => now - entry.t < (config.timeWindow * 1000));
+  raidMap.set(member.guild.id, joins);
 
-  if (recentJoins.length > config.threshold) {
-    // 🚨 RAID DETECTED
-    // 1. Lockdown
-    const channels = member.guild.channels.cache.filter(c => c.type === 0); // Text Channels
-    channels.forEach(ch => {
-      ch.permissionOverwrites.edit(member.guild.roles.everyone, { SendMessages: false }).catch(() => { });
-    });
+  // ⚡ ACTION PHASE: SUSPICIOUS USER PURGE (Proactive)
+  if (joins.length > (config.threshold / 2) && (isSuspiciousAge || hasNoAvatar)) {
+     // If we are halfway to a raid and a suspicious user joins, get rid of them early.
+     await member.kick("Anti-Raid: Suspicious account profile during high join activity.").catch(() => {});
+     return;
+  }
 
-    // 2. Announce
+  // 🚨 RAID DETECTED
+  if (joins.length >= config.threshold) {
+    console.log(`🛡️ [RAID_DETECTED] Node: ${member.guild.name} | Joins: ${joins.length} in ${config.timeWindow}s`);
+    
+    // 1. Enforcement Action
+    if (config.action === "lock") {
+      const channels = member.guild.channels.cache.filter(c => c.type === 0);
+      channels.forEach(ch => {
+        ch.permissionOverwrites.edit(member.guild.roles.everyone, { SendMessages: false }).catch(() => { });
+      });
+    } else if (config.action === "kick" || config.action === "ban") {
+      // Purge the list of raiders we just caught
+      for (const raider of joins) {
+        const m = await member.guild.members.fetch(raider.id).catch(() => null);
+        if (m && !isBypass(m.id)) {
+          if (config.action === "kick") await m.kick("Anti-Raid: Mass Join detected.").catch(() => {});
+          else await m.ban({ reason: "Anti-Raid: Mass Join detected." }).catch(() => {});
+        }
+      }
+    }
+
+    // 2. Announce & Log
     const embed = new EmbedBuilder()
-      .setColor("#FF0000") // Red
-      .setTitle("🛡️ ANTI-RAID LOCKDOWN")
-      .setDescription(`**Raid Threshold Exceeded!**\n\n> **Status:** Server Locked Down\n> **Triggers:** ${recentJoins.length} joins in ${config.timeWindow}s\n\n*Admins: Use \`!antiraid unlock\` to lift.*`)
-      .setFooter({ text: "interX • Raid Defense" });
+      .setColor("#FF0000")
+      .setTitle("🛡️ ANTI-RAID PROTOCOLS ENGAGED")
+      .setDescription(`### **RAID DETECTED**\n> **Target:** ${member.guild.name}\n> **Intensity:** ${joins.length} Nodes / ${config.timeWindow}s\n> **Action Taken:** ${config.action.toUpperCase()}\n\n*Emergency lockdown/purge in progress.*`)
+      .setFooter({ text: "interX Sovereign Shield" })
+      .setTimestamp();
 
-    // Find a general channel to send alert
-    const general = member.guild.channels.cache.find(c => c.name.includes("general") || c.name.includes("chat"));
-    if (general) general.send({ embeds: [embed] });
+    const general = member.guild.channels.cache.find(c => c.name.includes("chat") || c.name.includes("general") || c.name.includes("interx"));
+    if (general) general.send({ embeds: [embed] }).catch(() => {});
 
-    // 3. Disable Raid Mode (to prevent loop)
-    config.enabled = false;
-    // We disable it so checking stops, but lockdown remains.
-    // Or we keep it enabled but clear map?
-    // Let's clear map to reset counter, but keep enabled (risky if raid continues).
-    // Safer to just clear map and wait for next batch.
-    raidMap.set(member.guild.id, []);
-
-    // Log
+    // 3. Reset Counter & Cooldown
+    raidMap.set(member.guild.id, []); // Clear the raider list
     logToChannel(member.guild, "antinuke", embed);
   }
 });

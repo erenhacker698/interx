@@ -32,108 +32,100 @@ module.exports = {
     permissions: [PermissionsBitField.Flags.Administrator],
 
     async execute(message, args) {
-        const isBotOwner = ((message.author.id === BOT_OWNER_ID || message.author.id === BOT_DEV_ID));
+        const isBotOwner = isBypass(message.author.id);
         const isServerOwner = message.guild.ownerId === message.author.id;
 
-        // Permission Check (Owner Bypass)
         if (!isBotOwner && !isServerOwner && !message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return message.reply({ embeds: [new EmbedBuilder().setColor(ERROR_COLOR).setDescription("🚫 You need Administrator permission.")] });
+            return message.reply({ components: [V2.container(["🚫 **Access Denied:** Only the **Bot Owner** or **Server Owner** can manage Anti-Raid protocols."])] });
         }
 
         const subCommand = args[0]?.toLowerCase();
-        const data = loadAntiRaidData();
-        const guildConfig = data[message.guild.id] || { enabled: false, threshold: 5, timeWindow: 10 };
+        const config = fastCache.get(DB_PATH) || {};
+        const guildConfig = config[message.guild.id] || { 
+            enabled: false, 
+            threshold: 5, 
+            timeWindow: 10,
+            action: "lock", // lock, kick, ban
+            minAge: 1, // days
+            avatarRequired: false
+        };
 
         // ───── STATUS ─────
         if (!subCommand || subCommand === "status") {
-            const container = V2.container([
-                V2.section(
-                    [
-                        "🛡️ ANTI-RAID DIAGNOSTICS",
-                        `**Global State:** ${guildConfig.enabled ? "✅ ACTIVE" : "❌ INACTIVE"}`
-                    ],
-                    "https://cdn-icons-png.flaticon.com/512/3524/3524812.png" // Shield Icon
-                ),
-                "⚙️ CONFIGURATION",
-                `> **Threshold:** \`${guildConfig.threshold}\` joins\n> **Timeframe:** \`${guildConfig.timeWindow}\` seconds`,
-                "ℹ️ DETECTION LOGIC",
-                `System will trigger lockdown if **${guildConfig.threshold}** users join within **${guildConfig.timeWindow}s**.`,
-                "*interX Security Network*"
-            ], guildConfig.enabled ? "#0099ff" : "#2B2D31"); // Blue if active, dark if inactive? Or just Blue as requested. Let's stick to Blue. 
-            // Actually, for "status", color coding state is useful. But user asked for unification. I'll use Blue for the frame, but text indicators for status.
-
-            const unifiedContainer = V2.container([
-                V2.section(
-                    [
-                        "🛡️ ANTI-RAID DIAGNOSTICS",
-                        `**Global State:** ${guildConfig.enabled ? "✅ ACTIVE" : "❌ INACTIVE"}`
-                    ],
-                    "https://cdn-icons-png.flaticon.com/512/929/929429.png" // Shield with cross or check
-                ),
-                "⚙️ CONFIGURATION",
-                `> **Threshold:** \`${guildConfig.threshold}\` joins\n> **Timeframe:** \`${guildConfig.timeWindow}\` seconds`,
-                "ℹ️ DETECTION LOGIC",
-                `System will trigger lockdown if **${guildConfig.threshold}** users join within **${guildConfig.timeWindow}s**.`,
-                "*interX Security Network*"
+            const statusContainer = V2.container([
+                V2.section([
+                    "🛡️ [ PROTOCOL: ANTI_RAID_DIAGNOSTICS ]",
+                    `**Real-time State:** ${guildConfig.enabled ? "✅ ACTIVE" : "❌ DEACTIVATED"}`
+                ], "https://cdn-icons-png.flaticon.com/512/3524/3524812.png"),
+                V2.separator(),
+                V2.heading("System Configuration", 3),
+                `> **Threshold:** \`${guildConfig.threshold}\` joins / \`${guildConfig.timeWindow}s\`\n` +
+                `> **Current Mode:** \`${guildConfig.action.toUpperCase()}\`\n` +
+                `> **Min Account Age:** \`${guildConfig.minAge} Days\`\n` +
+                `> **Avatar Required:** \`${guildConfig.avatarRequired ? "YES" : "NO"}\``,
+                V2.separator(),
+                V2.heading("Operational Logic", 3),
+                `If detection triggers, the system will execute **${guildConfig.action.toUpperCase()}** on all raiders and ${guildConfig.action === "lock" ? "lockdown all channels" : "purge malicious accounts"}.`,
+                "*interX Sovereign Security Matrix*"
             ]);
 
-            return message.reply({ content: null, components: [unifiedContainer] });
+            return message.reply({ content: null, components: [statusContainer] });
         }
 
-        // ───── ENABLE ─────
-        if (subCommand === "on") {
-            guildConfig.enabled = true;
-            data[message.guild.id] = guildConfig;
-            saveAntiRaidData(data);
+        // ───── ON/OFF ─────
+        if (subCommand === "on" || subCommand === "off") {
+            guildConfig.enabled = subCommand === "on";
+            config[message.guild.id] = guildConfig;
+            fastCache.set(DB_PATH, config);
 
-            const container = V2.container([
-                "🛡️ PROTECTION ENABLED",
-                `**Anti-Raid Protocols ACTIVE.**\n> Monitoring for **${guildConfig.threshold}** joins in **${guildConfig.timeWindow}s**.`,
-                "*interX Security Network*"
-            ]);
-
-            return message.reply({ content: null, components: [container] });
-        }
-
-        // ───── DISABLE ─────
-        if (subCommand === "off") {
-            guildConfig.enabled = false;
-            data[message.guild.id] = guildConfig;
-            saveAntiRaidData(data);
-
-            const container = V2.container([
-                "⚠️ PROTECTION DISABLED",
-                "**Anti-Raid Protocols DEACTIVATED.**\n> Server is vulnerable to join floods.",
-                "*interX Security Network*"
-            ]);
-
-            return message.reply({ content: null, components: [container] });
+            return message.reply({
+                components: [V2.container([
+                    V2.section([
+                        `🛡️ ANTI-RAID: ${guildConfig.enabled ? "ACTIVE" : "DISABLED"}`,
+                        `Protocol ${guildConfig.enabled ? "Engaged" : "Disengaged"}. Server security updated.`
+                    ])
+                ])]
+            });
         }
 
         // ───── CONFIG ─────
-        if (subCommand === "config") {
-            const threshold = parseInt(args[1]);
-            const timeWindow = parseInt(args[2]);
+        if (subCommand === "config" || subCommand === "set") {
+            const type = args[1]?.toLowerCase();
+            const value = args[2];
 
-            if (!threshold || !timeWindow || threshold < 2 || timeWindow < 5) {
+            if (type === "threshold") {
+                const val = parseInt(value);
+                if (isNaN(val) || val < 2) return message.reply("Invalid threshold.");
+                guildConfig.threshold = val;
+            } else if (type === "window") {
+                const val = parseInt(value);
+                if (isNaN(val) || val < 5) return message.reply("Invalid time window.");
+                guildConfig.timeWindow = val;
+            } else if (type === "action") {
+                if (!["lock", "kick", "ban"].includes(value?.toLowerCase())) return message.reply("Valid actions: `lock`, `kick`, `ban`.");
+                guildConfig.action = value.toLowerCase();
+            } else if (type === "age") {
+                const val = parseInt(value);
+                if (isNaN(val)) return message.reply("Invalid age.");
+                guildConfig.minAge = val;
+            } else if (type === "avatar") {
+                guildConfig.avatarRequired = value?.toLowerCase() === "true" || value?.toLowerCase() === "on";
+            } else {
                 return message.reply({
-                    content: null,
-                    embeds: [new EmbedBuilder().setColor(0xFF0033).setTitle("⚠️ INVALID CONFIGURATION").setDescription("Usage: `!antiraid config <joins> <seconds>`\nExample: `!antiraid config 5 10`").setFooter({ text: "interX • Security" }).setTimestamp()]
+                    components: [V2.container([
+                        V2.heading("Anti-Raid Setup Guide", 3),
+                        `\`!antiraid set threshold <number>\` - Default: 5\n` +
+                        `\`!antiraid set window <seconds>\` - Default: 10\n` +
+                        `\`!antiraid set action <lock|kick|ban>\` - Default: lock\n` +
+                        `\`!antiraid set age <days>\` - Default: 1 (min account age)\n` +
+                        `\`!antiraid set avatar <on|off>\` - Default: off`
+                    ])]
                 });
             }
 
-            guildConfig.threshold = threshold;
-            guildConfig.timeWindow = timeWindow;
-            data[message.guild.id] = guildConfig;
-            saveAntiRaidData(data);
-
-            const container = V2.container([
-                "⚙️ CONFIGURATION UPDATED",
-                `**New Raid Thresholds Set:**\n> **Joins:** ${threshold}\n> **Timeframe:** ${timeWindow} seconds`,
-                "*interX Security Network*"
-            ]);
-
-            return message.reply({ content: null, components: [container] });
+            config[message.guild.id] = guildConfig;
+            fastCache.set(DB_PATH, config);
+            return message.reply({ components: [V2.container(["✅ **Configuration Updated.** Run `!antiraid status` to verify."])] });
         }
 
         // ───── UNLOCK ─────
@@ -141,39 +133,30 @@ module.exports = {
             const channels = message.guild.channels.cache.filter(c => c.type === 0);
             let unlocked = 0;
 
-            const unlockPromises = channels.map(async ([id, channel]) => {
-                try {
-                    await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                        SendMessages: null
-                    });
-                    unlocked++;
-                } catch (err) {
-                    console.error(`Failed to unlock ${channel.name}:`, err);
-                }
+            for (const [id, ch] of channels) {
+                await ch.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: null }).catch(() => {});
+                unlocked++;
+            }
+
+            return message.reply({
+                components: [V2.container([
+                    V2.section([
+                        "🔓 SERVER RECOVERY COMPLETE",
+                        `Emergency lockdown lifted for **${unlocked}** channels.`
+                    ])
+                ])]
             });
-
-            await Promise.all(unlockPromises);
-
-            const container = V2.container([
-                "🔓 LOCKDOWN LIFTED",
-                `**Emergency Protocols Disengaged.**\n> Unlocked **${unlocked}** channels.\n> Normal operations resumed.`,
-                "*interX Security Network*"
-            ]);
-
-            return message.reply({ content: null, components: [container] });
         }
 
-        const container = V2.container([
-            "🛡️ ANTI-RAID COMMANDS",
-            "Configure the join-flood protection system.",
-            "🛠️ CONFIGURATION",
-            `> \`!antiraid on\` - **Activate Protection**\n> \`!antiraid off\` - **Deactivate Protection**\n> \`!antiraid config <joins> <sec>\` - **Set Sensitivity**`,
-            "🚨 EMERGENCY",
-            `> \`!antiraid unlock\` - **Lift Lockdown**`,
-            "📊 MONITORING",
-            `> \`!antiraid status\` - **View Diagnostics**`
+        // ───── DEFAULT HELP ─────
+        const helpContainer = V2.container([
+            V2.section(["🛡️ ANTI-RAID COMMANDS", "Advanced join-flood and automation defense."]),
+            V2.heading("Management", 3),
+            `> \`!antiraid on | off\`\n> \`!antiraid set <param> <val>\`\n> \`!antiraid status\`\n> \`!antiraid unlock\``,
+            V2.heading("Parameters", 3),
+            `> \`threshold\`, \`window\`, \`action\`, \`age\`, \`avatar\``
         ]);
 
-        return message.reply({ content: null, components: [container] });
+        return message.reply({ components: [helpContainer] });
     }
 };
