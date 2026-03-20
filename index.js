@@ -272,62 +272,8 @@ function isCommandRateLimited(userId) {
   cmdCooldowns.set(userId, now);
   return false;
 }
-
-const { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus, entersState } = require("@discordjs/voice");
-
-// ───── 24/7 VC FUNCTION ─────
-async function joinVC247(guild) {
-  const DB_PATH = path.join(__dirname, "data/247.json");
-  let channelId = null;
-
-  if (fs.existsSync(DB_PATH)) {
-    try {
-      const db = JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
-      channelId = db[guild.id];
-    } catch (e) { }
-  }
-
-  try {
-    let channel;
-    if (channelId) {
-      channel = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null);
-    }
-
-    // FALLBACK: Join first available voice channel if no 24/7 or HomeVC set
-    if (!channel || channel.type !== 2) {
-      channel = guild.channels.cache.find(c => c.type === 2 && c.viewable && c.joinable);
-    }
-
-    if (!channel) return;
-
-    // Check if already connected to the correct channel to avoid socket spam
-    const existingConnection = getVoiceConnection(guild.id);
-    if (existingConnection && existingConnection.joinConfig.channelId === channel.id) {
-      return;
-    }
-
-    const connection = joinVoiceChannel({
-      channelId: channel.id,
-      guildId: guild.id,
-      adapterCreator: guild.voiceAdapterCreator,
-      selfDeaf: true,
-      selfMute: true
-    });
-
-    connection.on('error', (err) => {
-      // Suppress noisy discovery errors that trigger during boot spikes
-      if (err.message.includes("IP discovery")) return;
-      console.error(`🔊 [VoiceError] ${guild.name}:`, err.message);
-    });
-
-    console.log(`🔊 [StickyVoice] Joined ${channel.name} in ${guild.name}`);
-  } catch (e) {
-    if (!e.message.includes("IP discovery") && !e.message.includes("Voice connection already exists")) {
-      // Log as standard info since this is a background auto-retry
-      console.log(`[StickyVoice] Background Re-entry in ${guild.name}: ${e.message}`);
-    }
-  }
-}
+// ───── STICKY VOICE PROTOCOL (MOVED TO events/stickyVoice.js) ─────
+// Logic migrated to standalone event module for performance and stability.
 
 // ───── SECURITY & TRUST CHAIN CONFIG ─────
 const OWNERS_DB = path.join(__dirname, "data/owners.json");
@@ -918,11 +864,6 @@ client.once("ready", async () => {
   setTimeout(async () => {
     if (global.isShuttingDown) return;
     updateDashboard(client).catch(() => { });
-    for (const guild of client.guilds.cache.values()) {
-      if (global.isShuttingDown) break;
-      await joinVC247(guild);
-      await wait(1500);
-    }
   }, 10000);
 
   // ───── IMMEDIATE TASKS ─────
@@ -3146,25 +3087,7 @@ client.on("messageDeleteBulk", async messages => {
 
 // 7. VC LOGGING
 client.on("voiceStateUpdate", async (oldState, newState) => {
-  // 1. Handle Bot's 24/7 VC Reconnect (Existing Feature)
-  if (newState.member.id === client.user.id) {
-    const DB_PATH = path.join(__dirname, "data/247.json");
-    if (fs.existsSync(DB_PATH)) {
-      try {
-        const db = JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
-        const channelId = db[newState.guild.id];
-
-        // If we were disconnected but have a 24/7 entry, rejoin
-        if (!newState.channelId && channelId) {
-          console.log(`♻️ [24/7] Disconnected from ${newState.guild.name}. Reconnecting in 5s...`);
-          setTimeout(() => joinVC247(newState.guild), 5); // ⚡ Instant Rejoin
-        }
-      } catch (e) { }
-    }
-    return;
-  }
-
-  // 1.5. VDEFEND: Protection against unauthorized moves
+  // 1. VDEFEND: Protection against unauthorized moves
   if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
     const fs = require("fs");
     const path = require("path");
