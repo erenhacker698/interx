@@ -19,12 +19,13 @@ module.exports = {
             '8ball': `🔮 **8-Ball Answer:** ${["Yes", "No", "Maybe", "Most Likely", "Never", "Ask again later"][Math.floor(Math.random()*6)]}`
         };
 
-        const defaultMsg = `✨ **${name.toUpperCase()}** Protocol engaged for ${target}!`;
-        const content = responses["intelligence"] || defaultMsg;
+        const currentCmd = "intelligence";
+        const defaultMsg = `✨ **${currentCmd.toUpperCase()}** Protocol engaged for ${target}!`;
+        const content = responses[currentCmd] || defaultMsg;
 
         const embed = new EmbedBuilder()
             .setColor("#df0000")
-            .setTitle(`✨ [ ${name.toUpperCase()} ]`)
+            .setTitle(`✨ [ ${currentCmd.toUpperCase()} ]`)
             .setDescription(content)
             .setFooter({ text: "interX Sovereign • Fun Protocol" })
             .setTimestamp();

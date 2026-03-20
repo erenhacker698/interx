@@ -35,12 +35,13 @@ module.exports = {
             '8ball': \`🔮 **8-Ball Answer:** \${\["Yes", "No", "Maybe", "Most Likely", "Never", "Ask again later"\][Math.floor(Math.random()*6)]}\`
         };
 
-        const defaultMsg = \`✨ **\${name.toUpperCase()}** Protocol engaged for \${target}!\`;
-        const content = responses["${name}"] || defaultMsg;
+        const currentCmd = "${name}";
+        const defaultMsg = \`✨ **\${currentCmd.toUpperCase()}** Protocol engaged for \${target}!\`;
+        const content = responses[currentCmd] || defaultMsg;
 
         const embed = new EmbedBuilder()
             .setColor("#df0000")
-            .setTitle(\`✨ [ \${name.toUpperCase()} ]\`)
+            .setTitle(\`✨ [ \${currentCmd.toUpperCase()} ]\`)
             .setDescription(content)
             .setFooter({ text: "interX Sovereign • Fun Protocol" })
             .setTimestamp();
@@ -52,17 +53,13 @@ module.exports = {
 // Generate Fun Files
 funCommands.forEach(name => {
     const filePath = path.join(commandsDir, `${name}.js`);
-    if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, template(name, "fun"));
-    }
+    fs.writeFileSync(filePath, template(name, "fun"));
 });
 
-// Generate Game placeholders (to be expanded)
+// Generate Game placeholders
 gameCommands.forEach(name => {
     const filePath = path.join(commandsDir, `${name}.js`);
-    if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, template(name, "games"));
-    }
+    fs.writeFileSync(filePath, template(name, "games"));
 });
 
-console.log("✅ [FunPack] 36+ fun and game modules generated successfully.");
+console.log("✅ [FunPack] 36+ fun and game modules REGENERATED successfully.");
