@@ -2,15 +2,47 @@ const { DisTube } = require("distube");
 const { YouTubePlugin } = require("@distube/youtube");
 const { SpotifyPlugin } = require("@distube/spotify");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = (client) => {
+
+    // ─── LOAD COOKIES (from file or env) ───
+    // Cookies help bypass YouTube's "Sign in to confirm you're not a bot" error.
+    // See below for how to get your cookies.
+    let ytCookies = undefined;
+    const cookieFilePath = path.join(__dirname, "..", "data", "yt_cookies.json");
+
+    if (process.env.YT_COOKIES) {
+        // GitHub Actions / environment variable (JSON string)
+        try {
+            ytCookies = JSON.parse(process.env.YT_COOKIES);
+            console.log("🍪 [DisTube] YouTube cookies loaded from environment.");
+        } catch (e) {
+            console.warn("⚠️ [DisTube] YT_COOKIES env var is set but failed to parse as JSON.");
+        }
+    } else if (fs.existsSync(cookieFilePath)) {
+        // Local file fallback: data/yt_cookies.json
+        try {
+            ytCookies = JSON.parse(fs.readFileSync(cookieFilePath, "utf8"));
+            console.log("🍪 [DisTube] YouTube cookies loaded from yt_cookies.json.");
+        } catch (e) {
+            console.warn("⚠️ [DisTube] yt_cookies.json exists but failed to parse.");
+        }
+    } else {
+        console.warn("⚠️ [DisTube] No YouTube cookies found. YouTube may block playback. Add data/yt_cookies.json or YT_COOKIES env var.");
+    }
+
+    // ─── YOUTUBE PLUGIN CONFIG ───
+    const ytPluginOptions = {};
+    if (ytCookies) ytPluginOptions.cookies = ytCookies;
 
     client.distube = new DisTube(client, {
         emitNewSongOnly: true,
         emitAddSongWhenCreatingQueue: false,
         emitAddListWhenCreatingQueue: false,
         plugins: [
-            new YouTubePlugin(),
+            new YouTubePlugin(ytPluginOptions),
             new SpotifyPlugin()
         ],
         ffmpeg: {
@@ -33,7 +65,6 @@ module.exports = (client) => {
 
     // ───────────────── DISTUBE EVENTS ─────────────────
 
-    // Song starts playing
     client.distube.on("playSong", (queue, song) => {
         const embed = new EmbedBuilder()
             .setColor("#df0000")
@@ -51,7 +82,6 @@ module.exports = (client) => {
         queue.textChannel?.send({ embeds: [embed], components: [createMusicRow()] }).catch(() => {});
     });
 
-    // Song added to queue (when queue already exists)
     client.distube.on("addSong", (queue, song) => {
         const embed = new EmbedBuilder()
             .setColor("#df0000")
@@ -63,7 +93,6 @@ module.exports = (client) => {
         queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
     });
 
-    // Playlist loaded
     client.distube.on("addList", (queue, playlist) => {
         const embed = new EmbedBuilder()
             .setColor("#df0000")
@@ -83,7 +112,7 @@ module.exports = (client) => {
             const embed = new EmbedBuilder()
                 .setColor("#df0000")
                 .setTitle("❌ STREAM_ERROR_TERMINATED")
-                .setDescription(`\`\`\`\n${error.toString().slice(0, 500)}\n\`\`\``)
+                .setDescription(`\`\`\`\n${error.toString().slice(0, 500)}\n\`\`\`\n\n> ⚠️ If you see **"Sign in to confirm you're not a bot"**, the bot needs YouTube cookies. Contact the bot owner.`)
                 .setFooter({ text: "interX • System Diagnostic Kernel" });
             channel.send({ embeds: [embed] }).catch(() => {});
         }
