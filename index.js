@@ -120,7 +120,7 @@ client.invites = new Map();
 client.commands = new Map();
 
 // ───── CORE MODULES INITIALIZATION ─────
-// require("./music/distube")(client); // Initializes client.distube
+require("./music/distube")(client); // ✅ Initializes client.distube
 require("./ai/aiResponder.js")(client);
 
 // ───── CORE LOGGING KERNEL (LIFETIME SYNC) ─────

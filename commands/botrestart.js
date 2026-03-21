@@ -9,7 +9,7 @@ module.exports = {
     async execute(message, args) {
         // 🛡️ SECURITY: ONLY Bot Owners / Developers can trigger a reboot
         const isBypass = require("../utils/bypass_system").isBypass(message.author.id, message.guild.id);
-        
+
         if (!isBypass) {
             return message.reply({
                 components: [V2.container([

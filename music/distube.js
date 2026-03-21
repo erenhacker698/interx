@@ -18,32 +18,40 @@ module.exports = (client) => {
         }
     });
 
-    // ───────────────── DISCORD UI COMPONENTS ─────────────────
+    // ───────────────── STATUS STRING ─────────────────
     const status = (queue) =>
-        `**Volume:** \`${queue.volume}%\` | **Loop:** \`${queue.repeatMode ? (queue.repeatMode === 2 ? "All Queue" : "This Song") : "Off"}\` | **Autoplay:** \`${queue.autoplay ? "On" : "Off"}\``;
+        `**Volume:** \`${queue.volume}%\` | **Loop:** \`${queue.repeatMode === 0 ? "Off" : queue.repeatMode === 2 ? "All Queue" : "This Song"}\` | **Autoplay:** \`${queue.autoplay ? "On" : "Off"}\``;
 
+    // ───────────────── MUSIC CONTROL BUTTONS ─────────────────
     const createMusicRow = () => new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId("pause_resume").setLabel("⏯️").setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId("skip").setLabel("⏭️").setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId("stop").setLabel("⏹️").setStyle(ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId("voldown").setLabel("🔉").setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId("volup").setLabel("🔊").setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId("loop").setLabel("🔁").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId("voldown").setLabel("🔉").setStyle(ButtonStyle.Secondary)
     );
 
     // ───────────────── DISTUBE EVENTS ─────────────────
+
+    // Song starts playing
     client.distube.on("playSong", (queue, song) => {
         const embed = new EmbedBuilder()
-            .setColor("#df0000") // interX Red from config
+            .setColor("#df0000")
             .setTitle("🎵 [ AUDIO_NODE_ACTIVE ]")
-            .setAuthor({ name: "interX Music Infrastructure", iconURL: client.user.displayAvatarURL() })
-            .setDescription(`### **Now Playing:** [${song.name}](${song.url})\n\n> **Duration:** \`${song.formattedDuration}\` | **Requested by:** ${song.user}\n\n${status(queue)}`)
-            .setImage(song.thumbnail)
+            .setAuthor({ name: "interX Music Infrastructure", iconURL: client.user?.displayAvatarURL() ?? undefined })
+            .setDescription(
+                `### **Now Playing:** [${song.name}](${song.url})\n\n` +
+                `> **Duration:** \`${song.formattedDuration}\` | **Requested by:** ${song.user}\n\n` +
+                status(queue)
+            )
+            .setImage(song.thumbnail ?? null)
             .setFooter({ text: "interX • High Fidelity Streaming Core" })
             .setTimestamp();
 
-        queue.textChannel.send({ embeds: [embed], components: [createMusicRow()] });
+        queue.textChannel?.send({ embeds: [embed], components: [createMusicRow()] }).catch(() => {});
     });
 
+    // Song added to queue (when queue already exists)
     client.distube.on("addSong", (queue, song) => {
         const embed = new EmbedBuilder()
             .setColor("#df0000")
@@ -52,9 +60,10 @@ module.exports = (client) => {
             .setFooter({ text: "interX • Buffer Optimized" })
             .setTimestamp();
 
-        queue.textChannel.send({ embeds: [embed] });
+        queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
     });
 
+    // Playlist loaded
     client.distube.on("addList", (queue, playlist) => {
         const embed = new EmbedBuilder()
             .setColor("#df0000")
@@ -63,77 +72,34 @@ module.exports = (client) => {
             .setFooter({ text: "interX • Batch Stream Initialization" })
             .setTimestamp();
 
-        queue.textChannel.send({ embeds: [embed] });
+        queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
     });
 
-    client.distube.on("error", (channel, e) => {
+    // ─── DisTube v5 error signature: (error, queue, song?) ───
+    client.distube.on("error", (error, queue, song) => {
+        console.error(`[DisTube Error] ${error.message}`, error);
+        const channel = queue?.textChannel;
         if (channel) {
             const embed = new EmbedBuilder()
                 .setColor("#df0000")
                 .setTitle("❌ STREAM_ERROR_TERMINATED")
-                .setDescription(`\`\`\`\n${e.toString().slice(0, 500)}\n\`\`\``)
+                .setDescription(`\`\`\`\n${error.toString().slice(0, 500)}\n\`\`\``)
                 .setFooter({ text: "interX • System Diagnostic Kernel" });
-            channel.send({ embeds: [embed] });
+            channel.send({ embeds: [embed] }).catch(() => {});
         }
-        console.error(e);
     });
 
-    client.distube.on("empty", channel => {
-        channel.send("⚠️ **[ VOICE_STAGNANT ]** Channel is empty. Entering low-power mode.");
+    // ─── DisTube v5: empty event emits (queue), NOT (channel) ───
+    client.distube.on("empty", (queue) => {
+        queue.textChannel?.send("⚠️ **[ VOICE_STAGNANT ]** Channel is empty. Entering low-power mode.").catch(() => {});
     });
 
-    client.distube.on("finish", queue => {
-        queue.textChannel.send("🏁 **[ QUEUE_DEPLETED ]** All tracks in buffer processed.");
+    client.distube.on("finish", (queue) => {
+        queue.textChannel?.send("🏁 **[ QUEUE_DEPLETED ]** All tracks in buffer processed.").catch(() => {});
     });
 
-    // ───────────────── BUTTON INTERACTIONS ─────────────────
-    client.on("interactionCreate", async (interaction) => {
-        if (!interaction.isButton()) return;
-        const queue = client.distube.getQueue(interaction.guildId);
-        if (!queue) return;
-
-        // Check user voice state
-        if (!interaction.member.voice.channelId) {
-             return interaction.reply({ content: "⚠️ **[ ACCESS_DENIED ]** Join a Voice Channel to regulate audio nodes.", ephemeral: true });
-        }
-
-        try {
-            switch (interaction.customId) {
-                case "pause_resume":
-                    if (queue.paused) {
-                        queue.resume();
-                        await interaction.reply({ content: "▶️ Resumed transmission.", ephemeral: true });
-                    } else {
-                        queue.pause();
-                        await interaction.reply({ content: "⏸️ Transmission restricted (Paused).", ephemeral: true });
-                    }
-                    break;
-                case "skip":
-                    if (queue.songs.length <= 1) {
-                         await interaction.reply({ content: "❌ No pending tracks in buffer.", ephemeral: true });
-                    } else {
-                        await queue.skip();
-                        await interaction.reply({ content: "⏭️ Forced skip (Next Track).", ephemeral: true });
-                    }
-                    break;
-                case "stop":
-                    queue.stop();
-                    await interaction.reply({ content: "⏹️ Stream terminated (Session Closed).", ephemeral: true });
-                    break;
-                case "voldown":
-                    let dVol = Math.max(0, queue.volume - 10);
-                    queue.setVolume(dVol);
-                    await interaction.reply({ content: `🔉 Amplitude decreased to \`${dVol}%\``, ephemeral: true });
-                    break;
-                case "volup":
-                    let uVol = Math.min(100, queue.volume + 10);
-                    queue.setVolume(uVol);
-                    await interaction.reply({ content: `🔊 Amplitude increased to \`${uVol}%\``, ephemeral: true });
-                    break;
-            }
-        } catch (err) {
-            console.error(err);
-        }
+    client.distube.on("disconnect", (queue) => {
+        queue.textChannel?.send("🔌 **[ NODE_DISCONNECTED ]** Audio session closed.").catch(() => {});
     });
 
     console.log("🎵 [DisTube Core] Stabilized and active for interX.");
