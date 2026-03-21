@@ -1,0 +1,38 @@
+name: interX Bot CI/CD
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+  # Optional: Keep the bot running by restarting it every 6 hours (Max Action Duration)
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code 🔌
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 🟩
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies 📦
+      run: npm install
+
+    - name: Start Bot ⚡
+      env:
+        TOKEN: ${{ secrets.TOKEN }}
+        BOT_DEV_ID: ${{ secrets.BOT_DEV_ID }}
+        BOT_OWNER_ID: ${{ secrets.BOT_OWNER_ID }}
+        MONITOR_CHANNEL_ID: ${{ secrets.MONITOR_CHANNEL_ID }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        PORT: 3000
+      run: node index.js
