@@ -24,7 +24,7 @@ module.exports = (client) => {
         emitNewSongOnly: true,
         plugins: [
             new YouTubePlugin(ytPluginOptions),
-            new SpotifyPlugin({ emitEventsAfterFetching: true })
+            new SpotifyPlugin()
         ],
         ffmpeg: {
             path: require("ffmpeg-static")
