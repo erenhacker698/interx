@@ -127,7 +127,7 @@ async function restoreRole(guild, deleted) {
         || { name: deleted.name, color: deleted.hexColor, permissions: deleted.permissions.bitfield.toString(), hoist: deleted.hoist };
     await guild.roles.create({
         name:        orig.name,
-        color:       orig.color       || "#000000",
+        color:       orig.color       || "#fa0000ff",
         hoist:       orig.hoist       || false,
         permissions: BigInt(orig.permissions || 0)
     }).catch(() => {});
