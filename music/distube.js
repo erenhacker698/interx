@@ -79,7 +79,7 @@ module.exports = (client) => {
             .setFooter({ text: "interX • High Fidelity Streaming Core" })
             .setTimestamp();
 
-        queue.textChannel?.send({ embeds: [embed], components: [createMusicRow()] }).catch(() => {});
+        queue.textChannel?.send({ embeds: [embed], components: [createMusicRow()] }).catch(() => { });
     });
 
     client.distube.on("addSong", (queue, song) => {
@@ -90,7 +90,7 @@ module.exports = (client) => {
             .setFooter({ text: "interX • Buffer Optimized" })
             .setTimestamp();
 
-        queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
+        queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
     });
 
     client.distube.on("addList", (queue, playlist) => {
@@ -101,7 +101,7 @@ module.exports = (client) => {
             .setFooter({ text: "interX • Batch Stream Initialization" })
             .setTimestamp();
 
-        queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
+        queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
     });
 
     // ─── DisTube v5 error signature: (error, queue, song?) ───
@@ -114,21 +114,21 @@ module.exports = (client) => {
                 .setTitle("❌ STREAM_ERROR_TERMINATED")
                 .setDescription(`\`\`\`\n${error.toString().slice(0, 500)}\n\`\`\`\n\n> ⚠️ If you see **"Sign in to confirm you're not a bot"**, the bot needs YouTube cookies. Contact the bot owner.`)
                 .setFooter({ text: "interX • System Diagnostic Kernel" });
-            channel.send({ embeds: [embed] }).catch(() => {});
+            channel.send({ embeds: [embed] }).catch(() => { });
         }
     });
 
     // ─── DisTube v5: empty event emits (queue), NOT (channel) ───
     client.distube.on("empty", (queue) => {
-        queue.textChannel?.send("⚠️ **[ VOICE_STAGNANT ]** Channel is empty. Entering low-power mode.").catch(() => {});
+        queue.textChannel?.send("⚠️ **[ VOICE_STAGNANT ]** Channel is empty. Entering low-power mode.").catch(() => { });
     });
 
     client.distube.on("finish", (queue) => {
-        queue.textChannel?.send("🏁 **[ QUEUE_DEPLETED ]** All tracks in buffer processed.").catch(() => {});
+        queue.textChannel?.send("🏁 **[ QUEUE_DEPLETED ]** All tracks in buffer processed.").catch(() => { });
     });
 
     client.distube.on("disconnect", (queue) => {
-        queue.textChannel?.send("🔌 **[ NODE_DISCONNECTED ]** Audio session closed.").catch(() => {});
+        queue.textChannel?.send("🔌 **[ NODE_DISCONNECTED ]** Audio session closed.").catch(() => { });
     });
 
     console.log("🎵 [DisTube Core] Stabilized and active for interX.");
